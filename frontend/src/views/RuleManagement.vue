@@ -151,7 +151,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { ruleApi } from '../api'
 
 const rules = ref([])
 const loading = ref(false)
@@ -174,7 +174,8 @@ onMounted(() => {
 const loadRules = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/auth/rules') // 获取所有规则
+    const response = await ruleApi.getAllRules() // 获取所有规则
+    // 适配新的Result响应结构
     rules.value = response.data.data || []
   } catch (error) {
     console.error('加载授权规则失败:', error)
@@ -214,13 +215,14 @@ const saveRule = async () => {
     let response
     if (currentRule.value.id) {
       // 更新现有规则 - 使用新的更新API
-      response = await axios.put('/api/auth/rule/update', currentRule.value)
+      response = await ruleApi.updateRule(currentRule.value)
     } else {
       // 创建新规则
-      response = await axios.post('/api/auth/rule/create', currentRule.value)
+      response = await ruleApi.createRule(currentRule.value)
     }
     
-    if (response.data.success) {
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
       alert(currentRule.value.id ? '更新授权规则成功' : '创建授权规则成功')
       closeRuleDialog()
       await loadRules()
@@ -236,8 +238,9 @@ const saveRule = async () => {
 const deleteRule = async (rule) => {
   if (confirm(`确定要删除规则 "${rule.ruleName}" 吗？`)) {
     try {
-      const response = await axios.delete(`/api/auth/rule/${rule.id}`)
-      if (response.data.success) {
+      const response = await ruleApi.deleteRule(rule.id)
+      // 适配新的Result响应结构
+      if (response.data.code === 200) {
         alert('删除授权规则成功')
         await loadRules()
       } else {

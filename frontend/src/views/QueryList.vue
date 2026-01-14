@@ -191,27 +191,35 @@ const deleteQuery = async (row) => {
 
 const executeQuery = async (row) => {
   try {
-    const response = await axios.post('/api/query/execute', {
-      dataSourceId: row.dataSourceId,
+    const requestData = {
       sql: row.sql
-    })
-    
-    // 生成列定义
-    if (response.data && response.data.length > 0) {
-      resultColumns.value = Object.keys(response.data[0]).map(key => ({
-        field: key,
-        title: key,
-        width: 150
-      }))
-    } else {
-      resultColumns.value = []
     }
     
-    queryResult.value = response.data
-    showResultModal.value = true
+    const response = await dataSourceApi.executeQuery(row.dataSourceId, requestData)
+    
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
+      const resultData = response.data.data
+      
+      // 生成列定义
+      if (resultData && resultData.length > 0) {
+        resultColumns.value = Object.keys(resultData[0]).map(key => ({
+          field: key,
+          title: key,
+          width: 150
+        }))
+      } else {
+        resultColumns.value = []
+      }
+      
+      queryResult.value = resultData
+      showResultModal.value = true
+    } else {
+      alert('执行查询失败: ' + response.data.message)
+    }
   } catch (error) {
     console.error('执行查询失败:', error)
-    alert(error.response?.data || '执行查询失败')
+    alert(error.response?.data?.message || error.message || '执行查询失败')
   }
 }
 </script>

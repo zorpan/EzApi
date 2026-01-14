@@ -14,23 +14,33 @@
       resizable
     >
       <vxe-column type="seq" width="60" title="序号"></vxe-column>
-      <vxe-column field="apiName" title="接口名称" width="150"></vxe-column>
-      <vxe-column field="apiPath" title="接口路径" width="200"></vxe-column>
-      <vxe-column field="apiMethod" title="请求方法" width="100"></vxe-column>
-      <vxe-column field="dataSourceId" title="数据源" width="120"></vxe-column>
-      <vxe-column field="description" title="描述" width="200" show-overflow></vxe-column>
-      <vxe-column field="status" title="状态" width="80">
+      <vxe-column field="id" title="ID" width="80"></vxe-column>
+      <vxe-column field="apiName" title="接口名称" width="200"></vxe-column>
+      <vxe-column field="apiPath" title="接口路径" width="200">
         <template #default="{ row }">
-          <span :class="row.status === 1 ? 'status-active' : 'status-inactive'">
-            {{ row.status === 1 ? '上线' : '下线' }}
+          <span>/api/call{{ row.apiPath }}</span>
+        </template>
+      </vxe-column>
+      <vxe-column field="apiMethod" title="请求方法" width="120"></vxe-column>
+      <vxe-column field="status" title="状态" width="100">
+        <template #default="{ row }">
+          <span :class="row.status === 0 ? 'status-active' : 'status-inactive'">
+            {{ row.status === 0 ? '启用' : '禁用' }}
           </span>
         </template>
       </vxe-column>
-      <vxe-column title="操作" width="300">
+      <vxe-column field="description" title="描述" width="300" show-overflow></vxe-column>
+      <vxe-column title="操作" width="250">
         <template #default="{ row }">
-          <button class="btn btn-sm btn-info" @click="toggleApiStatus(row)">切换状态</button>
+          <button class="btn btn-sm btn-info" @click="viewApiDetails(row)">查看</button>
           <button class="btn btn-sm btn-warning" @click="openAddEditDialog(row)">编辑</button>
           <button class="btn btn-sm btn-danger" @click="deleteApi(row)">删除</button>
+          <button 
+            :class="['btn', 'btn-sm', row.status === 0 ? 'btn-inactive' : 'btn-active']"
+            @click="toggleApiStatus(row)"
+          >
+            {{ row.status === 0 ? '禁用' : '启用' }}
+          </button>
         </template>
       </vxe-column>
     </vxe-table>
@@ -66,97 +76,103 @@
                     <option value="DELETE">DELETE</option>
                   </select>
                 </div>
-                <div class="form-group" style="flex: 1; margin-left: 15px;">
-                  <label>数据源 *</label>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                  <label>数据源ID *</label>
                   <select v-model="currentApi.dataSourceId">
                     <option value="">请选择数据源</option>
-                    <option v-for="ds in dataSources" :key="ds.id" :value="ds.id">
-                      {{ ds.name }} ({{ ds.dbType }})
-                    </option>
+                    <option v-for="ds in dataSources" :key="ds.id" :value="ds.id">{{ ds.name }}</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1; margin-left: 15px;">
+                  <label>状态</label>
+                  <select v-model="currentApi.status">
+                    <option value="0">启用</option>
+                    <option value="1">禁用</option>
                   </select>
                 </div>
               </div>
-              <div class="form-group">
-                <label>描述</label>
-                <input type="text" v-model="currentApi.description" placeholder="接口描述">
-              </div>
+              
               <div class="form-group">
                 <label>SQL内容 *</label>
-                <textarea v-model="currentApi.sqlContent" class="form-textarea" rows="8" placeholder="请输入SQL语句"></textarea>
+                <textarea 
+                  v-model="currentApi.sqlContent" 
+                  rows="6" 
+                  placeholder="请输入SQL查询语句"
+                  class="form-textarea"
+                ></textarea>
               </div>
+              
               <div class="form-group">
-                <label>状态</label>
-                <select v-model="currentApi.status">
-                  <option value="0">下线</option>
-                  <option value="1">上线</option>
-                </select>
+                <label>描述</label>
+                <input type="text" v-model="currentApi.description" placeholder="请输入接口描述">
               </div>
               
               <!-- 参数配置区域 -->
               <div class="parameter-section">
-                <div class="parameter-header">
+                <div class="section-header">
                   <h4>参数配置</h4>
-                  <button type="button" class="btn btn-primary" @click="addParameter">添加参数</button>
+                  <button type="button" class="btn btn-sm btn-primary" @click="addParameter">添加参数</button>
                 </div>
                 
-                <vxe-table
-                  :data="currentApi.parameters"
-                  height="300"
-                  stripe
-                  border
-                  resizable
-                >
-                  <vxe-column type="seq" width="60" title="序号"></vxe-column>
-                  <vxe-column field="paramName" title="参数名" width="120">
-                    <template #default="{ row, rowIndex }">
-                      <input v-if="editingParamIndex === rowIndex" type="text" v-model="row.paramName" placeholder="参数名">
-                      <span v-else>{{ row.paramName }}</span>
-                    </template>
-                  </vxe-column>
-                  <vxe-column field="paramType" title="类型" width="100">
-                    <template #default="{ row, rowIndex }">
-                      <select v-if="editingParamIndex === rowIndex" v-model="row.paramType">
-                        <option value="STRING">STRING</option>
-                        <option value="INTEGER">INTEGER</option>
-                        <option value="BOOLEAN">BOOLEAN</option>
-                        <option value="DATE">DATE</option>
-                      </select>
-                      <span v-else>{{ row.paramType }}</span>
-                    </template>
-                  </vxe-column>
-                  <vxe-column field="required" title="必填" width="80">
-                    <template #default="{ row, rowIndex }">
-                      <input v-if="editingParamIndex === rowIndex" type="checkbox" v-model="row.required">
-                      <span v-else>{{ row.required ? '是' : '否' }}</span>
-                    </template>
-                  </vxe-column>
-                  <vxe-column field="defaultValue" title="默认值" width="150">
-                    <template #default="{ row, rowIndex }">
-                      <input v-if="editingParamIndex === rowIndex" type="text" v-model="row.defaultValue" placeholder="默认值">
-                      <span v-else>{{ row.defaultValue }}</span>
-                    </template>
-                  </vxe-column>
-                  <vxe-column field="validationRule" title="验证规则" width="200">
-                    <template #default="{ row, rowIndex }">
-                      <input v-if="editingParamIndex === rowIndex" type="text" v-model="row.validationRule" placeholder="正则表达式">
-                      <span v-else>{{ row.validationRule }}</span>
-                    </template>
-                  </vxe-column>
-                  <vxe-column field="description" title="描述" min-width="150">
-                    <template #default="{ row, rowIndex }">
-                      <input v-if="editingParamIndex === rowIndex" type="text" v-model="row.description" placeholder="参数描述">
-                      <span v-else>{{ row.description }}</span>
-                    </template>
-                  </vxe-column>
-                  <vxe-column title="操作" width="150">
-                    <template #default="{ row, rowIndex }">
-                      <button v-if="editingParamIndex !== rowIndex" class="btn btn-sm btn-warning" @click="editParameter(rowIndex)">编辑</button>
-                      <button v-if="editingParamIndex === rowIndex" class="btn btn-sm btn-primary" @click="saveParameterEdit">保存</button>
-                      <button v-if="editingParamIndex === rowIndex" class="btn btn-sm btn-secondary" @click="editingParamIndex = -1">取消</button>
-                      <button class="btn btn-sm btn-danger" @click="removeParameter(rowIndex)">删除</button>
-                    </template>
-                  </vxe-column>
-                </vxe-table>
+                <div class="parameter-table-container" v-if="currentApi.parameters && currentApi.parameters.length > 0">
+                  <table class="parameter-table">
+                    <thead>
+                      <tr>
+                        <th>参数名</th>
+                        <th>参数类型</th>
+                        <th>是否必填</th>
+                        <th>默认值</th>
+                        <th>描述</th>
+                        <th width="120">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(param, index) in currentApi.parameters" :key="index">
+                        <td>
+                          <input v-if="editingParamIndex === index" type="text" v-model="param.paramName" placeholder="参数名">
+                          <span v-else>{{ param.paramName }}</span>
+                        </td>
+                        <td>
+                          <select v-if="editingParamIndex === index" v-model="param.paramType">
+                            <option value="STRING">STRING</option>
+                            <option value="INTEGER">INTEGER</option>
+                            <option value="BOOLEAN">BOOLEAN</option>
+                            <option value="DATE">DATE</option>
+                          </select>
+                          <span v-else>{{ param.paramType }}</span>
+                        </td>
+                        <td>
+                          <input v-if="editingParamIndex === index" type="checkbox" v-model="param.required">
+                          <span v-else>{{ param.required ? '是' : '否' }}</span>
+                        </td>
+                        <td>
+                          <input v-if="editingParamIndex === index" type="text" v-model="param.defaultValue" placeholder="默认值">
+                          <span v-else>{{ param.defaultValue }}</span>
+                        </td>
+                        <td>
+                          <input v-if="editingParamIndex === index" type="text" v-model="param.description" placeholder="描述">
+                          <span v-else>{{ param.description }}</span>
+                        </td>
+                        <td>
+                          <template v-if="editingParamIndex === index">
+                            <button class="btn btn-sm btn-success" @click="saveParameter(index)">保存</button>
+                            <button class="btn btn-sm btn-secondary" @click="cancelEditParameter">取消</button>
+                          </template>
+                          <template v-else>
+                            <button class="btn btn-sm btn-warning" @click="editParameter(index)">编辑</button>
+                            <button class="btn btn-sm btn-danger" @click="removeParameter(index)">删除</button>
+                          </template>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div v-else class="no-parameters">
+                  暂无参数配置
+                </div>
               </div>
             </form>
           </div>
@@ -167,17 +183,78 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- 接口详情对话框 -->
+    <Teleport to="body">
+      <div class="modal-overlay" v-if="apiDetailDialogVisible" @click="closeApiDetailDialog">
+        <div class="modal-dialog" @click.stop>
+          <div class="modal-header">
+            <h3>接口详情</h3>
+            <button class="modal-close" @click="closeApiDetailDialog">&times;</button>
+          </div>
+          <div class="modal-body" v-if="selectedApi">
+            <div class="detail-item">
+              <label>ID:</label>
+              <span>{{ selectedApi.id }}</span>
+            </div>
+            <div class="detail-item">
+              <label>接口名称:</label>
+              <span>{{ selectedApi.apiName }}</span>
+            </div>
+            <div class="detail-item">
+              <label>接口路径:</label>
+              <span>/api/call{{ selectedApi.apiPath }}</span>
+            </div>
+            <div class="detail-item">
+              <label>请求方法:</label>
+              <span>{{ selectedApi.apiMethod }}</span>
+            </div>
+            <div class="detail-item">
+              <label>数据源ID:</label>
+              <span>{{ selectedApi.dataSourceId }}</span>
+            </div>
+            <div class="detail-item">
+              <label>状态:</label>
+              <span :class="selectedApi.status === 0 ? 'status-active' : 'status-inactive'">
+                {{ selectedApi.status === 0 ? '启用' : '禁用' }}
+              </span>
+            </div>
+            <div class="detail-item">
+              <label>SQL内容:</label>
+              <pre>{{ selectedApi.sqlContent }}</pre>
+            </div>
+            <div class="detail-item">
+              <label>描述:</label>
+              <span>{{ selectedApi.description }}</span>
+            </div>
+            <div class="detail-item" v-if="selectedApi.parameters && selectedApi.parameters.length > 0">
+              <label>参数配置:</label>
+              <ul>
+                <li v-for="(param, index) in selectedApi.parameters" :key="index">
+                  {{ param.paramName }} ({{ param.paramType }}) - {{ param.description || '无描述' }} 
+                  <span v-if="param.required" class="required-tag">必填</span>
+                  <span v-if="param.defaultValue">默认值: {{ param.defaultValue }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" @click="closeApiDetailDialog">关闭</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { apiManagementApi, dataSourceApi } from '../api'
 
 const apis = ref([])
 const loading = ref(false)
 const showApiDialog = ref(false)
-const editingParamIndex = ref(-1)  // 当前正在编辑的参数索引
+const apiDetailDialogVisible = ref(false)
 const currentApi = ref({
   id: null,
   apiName: '',
@@ -187,19 +264,21 @@ const currentApi = ref({
   sqlContent: '',
   description: '',
   status: 0,
-  parameters: []  // 参数列表
+  parameters: []
 })
-const dataSources = ref([])
+const selectedApi = ref({})
+const editingParamIndex = ref(-1)
+const dataSources = ref([]) // 存储数据源列表
 
 onMounted(() => {
   loadApis()
-  loadDataSources()
+  loadDataSources() // 加载数据源列表
 })
 
 const loadDataSources = async () => {
   try {
-    const response = await axios.get('/api/datasource/list')
-    dataSources.value = response.data
+    const response = await dataSourceApi.getAllDataSources()
+    dataSources.value = response.data.data || []
   } catch (error) {
     console.error('加载数据源失败:', error)
   }
@@ -208,10 +287,12 @@ const loadDataSources = async () => {
 const loadApis = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/management/apis')
-    apis.value = response.data
+    const response = await apiManagementApi.getAllApis()
+    // 适配新的Result响应结构
+    apis.value = response.data.data || []
   } catch (error) {
     console.error('加载接口失败:', error)
+    alert('加载接口失败: ' + (error.response?.data?.message || error.message))
   } finally {
     loading.value = false
   }
@@ -255,72 +336,99 @@ const saveApi = async () => {
     
     let response
     if (currentApi.value.id) {
-      response = await axios.post('/api/management/api', apiData)
+      response = await apiManagementApi.saveApi(apiData)
     } else {
-      response = await axios.post('/api/management/api', apiData)
+      response = await apiManagementApi.saveApi(apiData)
     }
     
-    alert(response.data)
-    closeApiDialog()
-    await loadApis()
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
+      alert(currentApi.value.id ? '更新接口成功' : '创建接口成功')
+      closeApiDialog()
+      await loadApis()
+    } else {
+      alert('操作失败: ' + response.data.message)
+    }
   } catch (error) {
     console.error('保存接口失败:', error)
-    alert(error.response?.data || '保存接口失败')
-  }
-}
-
-const toggleApiStatus = async (api) => {
-  try {
-    const newStatus = api.status === 1 ? 0 : 1
-    const response = await axios.put(`/api/management/api/${api.id}/status`, {
-      status: newStatus
-    })
-    
-    alert(response.data)
-    await loadApis()
-  } catch (error) {
-    console.error('切换接口状态失败:', error)
-    alert(error.response?.data || '切换接口状态失败')
+    alert('保存接口失败: ' + (error.response?.data?.message || error.message))
   }
 }
 
 const deleteApi = async (api) => {
   if (confirm(`确定要删除接口 "${api.apiName}" 吗？`)) {
     try {
-      const response = await axios.delete(`/api/management/api/${api.id}`)
-      alert(response.data)
-      await loadApis()
+      const response = await apiManagementApi.deleteApi(api.id)
+      // 适配新的Result响应结构
+      if (response.data.code === 200) {
+        alert('删除接口成功')
+        await loadApis()
+      } else {
+        alert('删除失败: ' + response.data.message)
+      }
     } catch (error) {
       console.error('删除接口失败:', error)
-      alert(error.response?.data || '删除接口失败')
+      alert('删除接口失败: ' + (error.response?.data?.message || error.message))
     }
   }
 }
 
+const toggleApiStatus = async (api) => {
+  try {
+    const newStatus = api.status === 0 ? 1 : 0
+    const response = await apiManagementApi.updateApiStatus(api.id, { status: newStatus })
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
+      alert(`接口${newStatus === 0 ? '启用' : '禁用'}成功`)
+      await loadApis()
+    } else {
+      alert('状态切换失败: ' + response.data.message)
+    }
+  } catch (error) {
+    console.error('切换接口状态失败:', error)
+    alert('切换接口状态失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+const viewApiDetails = (api) => {
+  selectedApi.value = api
+  apiDetailDialogVisible.value = true
+}
+
+const closeApiDetailDialog = () => {
+  apiDetailDialogVisible.value = false
+}
+
+// 参数管理相关方法
 const addParameter = () => {
-  const newParam = {
-    id: null,
-    apiId: currentApi.value.id,
+  if (!currentApi.value.parameters) {
+    currentApi.value.parameters = []
+  }
+  currentApi.value.parameters.push({
     paramName: '',
     paramType: 'STRING',
     required: false,
     defaultValue: '',
-    description: '',
-    validationRule: ''
-  }
-  currentApi.value.parameters.push(newParam)
+    description: ''
+  })
 }
 
 const editParameter = (index) => {
   editingParamIndex.value = index
 }
 
-const saveParameterEdit = () => {
+const saveParameter = (index) => {
+  editingParamIndex.value = -1
+}
+
+const cancelEditParameter = () => {
   editingParamIndex.value = -1
 }
 
 const removeParameter = (index) => {
-  currentApi.value.parameters.splice(index, 1)
+  if (currentApi.value.parameters && currentApi.value.parameters.length > index) {
+    currentApi.value.parameters.splice(index, 1)
+  }
 }
 </script>
 
@@ -336,23 +444,46 @@ const removeParameter = (index) => {
   margin-bottom: 20px;
 }
 
-.parameter-section {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
-}
-
-.parameter-header {
+.detail-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
 }
 
-.parameter-header h4 {
+.detail-item label {
+  font-weight: bold;
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.detail-item span {
+  flex: 1;
+}
+
+.detail-item pre {
+  flex: 1;
+  background: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.detail-item ul {
+  flex: 1;
   margin: 0;
-  font-size: 16px;
-  color: #303133;
+  padding-left: 20px;
+}
+
+.detail-item li {
+  margin-bottom: 5px;
+}
+
+.required-tag {
+  color: #f56c6c;
+  margin-left: 5px;
 }
 
 .btn {
@@ -402,12 +533,35 @@ const removeParameter = (index) => {
   font-size: 12px;
 }
 
+.btn-secondary {
+  background-color: #909399;
+  color: white;
+}
+
 .status-active {
   color: #67c23a;
 }
 
 .status-inactive {
   color: #909399;
+}
+
+.status-toggle-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-active {
+  background-color: #67c23a;
+  color: white;
+}
+
+.btn-inactive {
+  background-color: #f56c6c;
+  color: white;
 }
 
 .form {
@@ -443,37 +597,82 @@ const removeParameter = (index) => {
   box-sizing: border-box;
 }
 
-.api-path-container {
-  display: flex;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.api-path-prefix {
-  padding: 8px 12px;
-  background-color: #f5f7fa;
-  border-right: 1px solid #dcdfe6;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-}
-
-.api-path-input {
-  flex: 1;
-  border: none;
-  padding: 8px;
-  outline: none;
-}
-
 .form-textarea {
   font-family: monospace;
   resize: vertical;
 }
 
-.form-actions {
-  text-align: right;
+.api-path-container {
+  display: flex;
+  align-items: center;
+}
+
+.api-path-prefix {
+  background-color: #f5f5f5;
+  border: 1px solid #dcdfe6;
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  padding: 8px;
+  font-family: monospace;
+}
+
+.api-path-input {
+  border-radius: 0 4px 4px 0;
+  flex: 1;
+}
+
+.parameter-section {
   margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e4e7ed;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.section-header h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.parameter-table-container {
+  overflow-x: auto;
+}
+
+.parameter-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.parameter-table th,
+.parameter-table td {
+  border: 1px solid #e4e7ed;
+  padding: 8px;
+  text-align: left;
+}
+
+.parameter-table th {
+  background-color: #f5f5f5;
+}
+
+.parameter-table input,
+.parameter-table select {
+  width: 100%;
+  padding: 4px;
+  border: 1px solid #dcdfe6;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.no-parameters {
+  text-align: center;
+  color: #909399;
+  padding: 20px;
 }
 
 /* 模态框样式 */

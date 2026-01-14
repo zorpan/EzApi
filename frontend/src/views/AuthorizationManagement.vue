@@ -62,7 +62,7 @@
                   <label>密钥名称 *</label>
                   <input type="text" v-model="currentToken.tokenName" placeholder="请输入密钥名称">
                 </div>
-                <div class="form-group" style="flex: 1;">
+                <div class="form-group" style="flex: 1; margin-left: 15px;">
                   <label>密钥类型 *</label>
                   <select v-model="currentToken.tokenType">
                     <option value="API_KEY">API_KEY</option>
@@ -182,7 +182,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
+import { authorizationApi, apiManagementApi } from '../api'
 
 const tokens = ref([])
 const apis = ref([]) // 存储API列表
@@ -219,7 +219,8 @@ const apiTransferData = computed(() => {
 const loadTokens = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/auth/tokens') // 获取所有令牌
+    const response = await authorizationApi.getAllTokens() // 获取所有令牌
+    // 适配新的Result响应结构
     tokens.value = response.data.data || []
   } catch (error) {
     console.error('加载API密钥失败:', error)
@@ -232,8 +233,9 @@ const loadTokens = async () => {
 const loadApis = async () => {
   try {
     // 获取所有API列表
-    const response = await axios.get('/api/management/apis')
-    apis.value = response.data || []
+    const response = await apiManagementApi.getAllApis()
+    // 适配新的Result响应结构
+    apis.value = response.data.data || []
   } catch (error) {
     console.error('加载API列表失败:', error)
     // 如果获取API列表失败，也可以继续，用户可以选择通用密钥
@@ -278,14 +280,15 @@ const saveToken = async () => {
     
     let response
     if (currentToken.value.id) {
-      // 更新现有令牌
-      response = await axios.post('/api/auth/token/create', currentToken.value)
+      // 更新现有令牌 - 使用put方法
+      response = await authorizationApi.createToken(currentToken.value) // 实际上这里需要一个更新接口，但现在用create接口
     } else {
       // 创建新令牌
-      response = await axios.post('/api/auth/token/create', currentToken.value)
+      response = await authorizationApi.createToken(currentToken.value)
     }
     
-    if (response.data.success) {
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
       alert(currentToken.value.id ? '更新API密钥成功' : '创建API密钥成功')
       closeTokenDialog()
       await loadTokens()
@@ -305,8 +308,9 @@ const saveToken = async () => {
 const deleteToken = async (token) => {
   if (confirm(`确定要删除API密钥 "${token.tokenName}" 吗？`)) {
     try {
-      const response = await axios.delete(`/api/auth/token/${token.id}`)
-      if (response.data.success) {
+      const response = await authorizationApi.deleteToken(token.id)
+      // 适配新的Result响应结构
+      if (response.data.code === 200) {
         alert('删除API密钥成功')
         await loadTokens()
       } else {
@@ -321,8 +325,9 @@ const deleteToken = async (token) => {
 
 const toggleTokenStatus = async (token) => {
   try {
-    const response = await axios.put(`/api/auth/token/toggle-status/${token.id}`)
-    if (response.data.success) {
+    const response = await authorizationApi.toggleTokenStatus(token.id)
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
       alert('API密钥状态切换成功')
       await loadTokens() // 重新加载数据以获取最新状态
     } else {
