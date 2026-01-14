@@ -1,0 +1,10 @@
+package com.newx.api.auth.config;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@MapperScan("com.newx.api.auth.mapper")
+public class MybatisAuthConfig {
+    // 配置MyBatis扫描授权模块的Mapper
+}
