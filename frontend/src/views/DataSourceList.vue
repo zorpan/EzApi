@@ -1,8 +1,8 @@
 <template>
   <div class="datasource-list-container">
     <div class="toolbar">
-      <button class="btn btn-primary" @click="openAddDialog">新增数据源</button>
-      <button class="btn btn-success" @click="loadDataSources">刷新</button>
+      <button class="btn btn-primary" @click="openAddDialog()">新增数据源</button>
+      <button class="btn btn-success" @click="loadDataSources()">刷新</button>
     </div>
 
     <vxe-table
@@ -14,71 +14,84 @@
       resizable
     >
       <vxe-column type="seq" width="60" title="序号"></vxe-column>
-      <vxe-column field="name" title="名称" width="150"></vxe-column>
-      <vxe-column field="dbType" title="数据库类型" width="120"></vxe-column>
-      <vxe-column field="url" title="连接URL" width="300" show-overflow></vxe-column>
-      <vxe-column field="username" title="用户名" width="120"></vxe-column>
+      <vxe-column field="id" title="ID" width="120"></vxe-column>
+      <vxe-column field="name" title="数据源名称" width="200"></vxe-column>
       <vxe-column field="driverClassName" title="驱动类" width="200"></vxe-column>
-      <vxe-column field="enabled" title="状态" width="80">
+      <vxe-column field="url" title="连接URL" width="300" show-overflow></vxe-column>
+      <vxe-column field="dbType" title="数据库类型" width="120"></vxe-column>
+      <vxe-column field="enabled" title="状态" width="100">
         <template #default="{ row }">
           <span :class="row.enabled ? 'status-active' : 'status-inactive'">
             {{ row.enabled ? '启用' : '禁用' }}
           </span>
         </template>
       </vxe-column>
-      <vxe-column title="操作" width="200">
+      <vxe-column title="操作" width="250">
         <template #default="{ row }">
-          <button class="btn btn-sm btn-info" @click="testConnection(row)">测试连接</button>
+          <button class="btn btn-sm btn-info" @click="testConnection(row)">测试</button>
           <button class="btn btn-sm btn-warning" @click="editDataSource(row)">编辑</button>
-          <button class="btn btn-sm btn-danger" @click="deleteDataSource(row)">删除</button>
+          <button class="btn btn-sm btn-danger" @click="removeDataSource(row)">删除</button>
+          <button 
+            :class="['btn', 'btn-sm', row.enabled ? 'btn-inactive' : 'btn-active']"
+            @click="toggleDataSourceStatus(row)"
+          >
+            {{ row.enabled ? '禁用' : '启用' }}
+          </button>
         </template>
       </vxe-column>
     </vxe-table>
 
-    <!-- 新增/编辑对话框 -->
+    <!-- 数据源配置对话框 -->
     <Teleport to="body">
-      <div class="modal-overlay" v-if="showModal" @click="showModal = false">
+      <div class="modal-overlay" v-if="showModal" @click="closeModal">
         <div class="modal-dialog" @click.stop>
           <div class="modal-header">
             <h3>{{ currentDataSource.id ? '编辑数据源' : '新增数据源' }}</h3>
-            <button class="modal-close" @click="showModal = false">&times;</button>
+            <button class="modal-close" @click="closeModal">&times;</button>
           </div>
           <div class="modal-body">
             <form class="form">
               <div class="form-group">
-                <label>名称:</label>
-                <input type="text" v-model="currentDataSource.name" placeholder="数据源名称">
+                <label>数据源ID *</label>
+                <input type="text" v-model="currentDataSource.id" :disabled="!!currentDataSource.id" placeholder="数据源唯一标识">
               </div>
               <div class="form-group">
-                <label>数据库类型:</label>
-                <select v-model="currentDataSource.dbType" @change="onDbTypeChange" placeholder="选择数据库类型">
+                <label>数据源名称 *</label>
+                <input type="text" v-model="currentDataSource.name" placeholder="请输入数据源名称">
+              </div>
+              <div class="form-group">
+                <label>数据库类型 *</label>
+                <select v-model="currentDataSource.dbType">
                   <option value="">请选择数据库类型</option>
-                  <option v-for="dbType in databaseTypes" :key="dbType.type" :value="dbType.type">
-                    {{ dbType.type }}
-                  </option>
+                  <option v-for="type in databaseTypes" :key="type" :value="type">{{ type }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>驱动类:</label>
-                <input type="text" v-model="currentDataSource.driverClassName" placeholder="驱动类名">
+                <label>驱动类名 *</label>
+                <input type="text" v-model="currentDataSource.driverClassName" placeholder="例如: com.mysql.cj.jdbc.Driver">
               </div>
               <div class="form-group">
-                <label>连接URL:</label>
-                <input type="text" v-model="currentDataSource.url" placeholder="数据库连接地址">
+                <label>连接URL *</label>
+                <input type="text" v-model="currentDataSource.url" placeholder="例如: jdbc:mysql://localhost:3306/database">
               </div>
               <div class="form-group">
-                <label>用户名:</label>
+                <label>用户名 *</label>
                 <input type="text" v-model="currentDataSource.username" placeholder="数据库用户名">
               </div>
               <div class="form-group">
-                <label>密码:</label>
+                <label>密码</label>
                 <input type="password" v-model="currentDataSource.password" placeholder="数据库密码">
+              </div>
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" v-model="currentDataSource.enabled"> 启用状态
+                </label>
               </div>
             </form>
           </div>
           <div class="modal-footer">
             <button class="btn btn-primary" @click="saveDataSource">保存</button>
-            <button class="btn btn-secondary" @click="showModal = false">取消</button>
+            <button class="btn btn-secondary" @click="closeModal">取消</button>
           </div>
         </div>
       </div>
@@ -88,7 +101,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { dataSourceApi } from '../api'
 
 const dataSources = ref([])
 const loading = ref(false)
@@ -112,8 +125,9 @@ onMounted(() => {
 
 const loadDatabaseTypes = async () => {
   try {
-    const response = await axios.get('/api/datasource/types')
-    databaseTypes.value = response.data
+    const response = await dataSourceApi.getDatabaseTypes()
+    // 适配新的Result响应结构
+    databaseTypes.value = response.data.data || []
   } catch (error) {
     console.error('加载数据库类型失败:', error)
   }
@@ -122,8 +136,9 @@ const loadDatabaseTypes = async () => {
 const loadDataSources = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/datasource/list')
-    dataSources.value = response.data
+    const response = await dataSourceApi.getAllDataSources()
+    // 适配新的Result响应结构
+    dataSources.value = response.data.data || []
   } catch (error) {
     console.error('加载数据源失败:', error)
   } finally {
@@ -147,49 +162,74 @@ const openAddDialog = () => {
 
 const editDataSource = (row) => {
   currentDataSource.value = { ...row }
+  // 密码不应在编辑时显示，除非需要更新
+  currentDataSource.value.password = '' // 清空密码字段以避免暴露
   showModal.value = true
 }
 
-const onDbTypeChange = () => {
-  if (currentDataSource.value.dbType) {
-    const selectedDbType = databaseTypes.value.find(type => type.type === currentDataSource.value.dbType)
-    if (selectedDbType) {
-      currentDataSource.value.driverClassName = selectedDbType.driverClass
-      // 使用默认模板，实际应用中可能需要用户输入host、port、database等参数
-      currentDataSource.value.url = selectedDbType.connectionTemplate
-    }
-  }
+const closeModal = () => {
+  showModal.value = false
 }
 
 const saveDataSource = async () => {
   try {
-    await axios.post('/api/datasource/add', currentDataSource.value)
-    showModal.value = false
-    await loadDataSources()
+    let response
+    if (currentDataSource.value.id) {
+      // 更新数据源 - 实际上后端可能没有直接的更新接口，我们使用add接口
+      response = await dataSourceApi.addDataSource(currentDataSource.value)
+    } else {
+      // 新增数据源
+      response = await dataSourceApi.addDataSource(currentDataSource.value)
+    }
+    
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
+      alert(currentDataSource.value.id ? '更新数据源成功' : '新增数据源成功')
+      closeModal()
+      await loadDataSources()
+    } else {
+      alert('操作失败: ' + response.data.message)
+    }
   } catch (error) {
     console.error('保存数据源失败:', error)
-  }
-}
-
-const deleteDataSource = async (row) => {
-  if (confirm(`确定要删除数据源 "${row.name}" 吗？`)) {
-    try {
-      await axios.delete(`/api/datasource/remove/${row.id}`)
-      await loadDataSources()
-    } catch (error) {
-      console.error('删除数据源失败:', error)
-    }
+    alert('保存数据源失败: ' + (error.response?.data?.message || error.message))
   }
 }
 
 const testConnection = async (row) => {
   try {
-    const response = await axios.post(`/api/datasource/test/${row.id}`)
-    alert(response.data)
+    const response = await dataSourceApi.testConnection(row.id)
+    if (response.data.code === 200) {
+      alert('连接测试成功: ' + response.data.data)
+    } else {
+      alert('连接测试失败: ' + response.data.message)
+    }
   } catch (error) {
     console.error('测试连接失败:', error)
-    alert(error.response?.data || '连接测试失败')
+    alert('测试连接失败: ' + (error.response?.data?.message || error.message))
   }
+}
+
+const removeDataSource = async (row) => {
+  if (confirm(`确定要删除数据源 "${row.name}" 吗？`)) {
+    try {
+      const response = await dataSourceApi.removeDataSource(row.id)
+      if (response.data.code === 200) {
+        alert('删除数据源成功')
+        await loadDataSources()
+      } else {
+        alert('删除失败: ' + response.data.message)
+      }
+    } catch (error) {
+      console.error('删除数据源失败:', error)
+      alert('删除数据源失败: ' + (error.response?.data?.message || error.message))
+    }
+  }
+}
+
+const toggleDataSourceStatus = (row) => {
+  // 这里只是临时切换状态，实际的启用/禁用逻辑需要后端支持
+  alert('切换状态功能需要后端API支持')
 }
 </script>
 
@@ -309,10 +349,13 @@ const testConnection = async (row) => {
 .modal-dialog {
   background: white;
   border-radius: 8px;
-  width: 600px;
-  max-width: 90vw;
+  width: 800px;
+  max-width: 95vw;
+  max-height: 90vh;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -350,6 +393,8 @@ const testConnection = async (row) => {
 
 .modal-body {
   padding: 20px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .modal-footer {
@@ -358,5 +403,6 @@ const testConnection = async (row) => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  background-color: #fafafa;
 }
 </style>

@@ -1,5 +1,4 @@
 // 认证工具函数
-import axios from 'axios'
 
 // 检查用户是否已登录
 export const isAuthenticated = () => {
@@ -21,12 +20,8 @@ export const getAuthToken = () => {
 export const login = (userData) => {
   localStorage.setItem('isLoggedIn', 'true')
   localStorage.setItem('currentUser', JSON.stringify(userData))
-  
-  // 如果有新的令牌，也保存它
-  const token = getAuthToken()
-  if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  }
+
+  // 令牌会在request拦截器中自动添加，无需手动设置
 }
 
 // 登出
@@ -34,18 +29,15 @@ export const logout = () => {
   localStorage.removeItem('isLoggedIn')
   localStorage.removeItem('currentUser')
   localStorage.removeItem('authToken')
-  
-  // 删除认证头
-  delete axios.defaults.headers.common['Authorization']
+
+  // 认证头会在request拦截器中自动处理
 }
 
 // 设置认证请求头
+// 注意：现在认证头由request拦截器自动处理
 export const setAuthHeader = (token) => {
-  if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  } else {
-    delete axios.defaults.headers.common['Authorization']
-  }
+  // 认证头会在request拦截器中自动从localStorage获取
+  // 这个函数保留是为了向后兼容
 }
 
 // 初始化认证状态

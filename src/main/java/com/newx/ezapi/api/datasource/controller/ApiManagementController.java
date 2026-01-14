@@ -4,6 +4,7 @@ import com.newx.ezapi.api.datasource.entity.ApiInfo;
 import com.newx.ezapi.api.datasource.entity.ApiParameter;
 import com.newx.ezapi.api.datasource.service.ApiInfoService;
 import com.newx.ezapi.api.datasource.service.ApiParameterService;
+import com.newx.ezapi.common.result.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,20 +25,29 @@ public class ApiManagementController {
      * 获取所有API信息
      */
     @GetMapping("/apis")
-    public List<ApiInfo> getAllApis() {
-        return apiInfoService.getAllApiInfos();
+    public Result<List<ApiInfo>> getAllApis() {
+        try {
+            List<ApiInfo> apis = apiInfoService.getAllApiInfos();
+            return Result.success(apis);
+        } catch (Exception e) {
+            return Result.error("获取API列表失败: " + e.getMessage());
+        }
     }
 
     /**
      * 获取单个API信息
      */
     @GetMapping("/api/{id}")
-    public ResponseEntity<ApiInfo> getApiById(@PathVariable Long id) {
-        ApiInfo apiInfo = apiInfoService.getApiInfoById(id);
-        if (apiInfo != null) {
-            return ResponseEntity.ok(apiInfo);
-        } else {
-            return ResponseEntity.notFound().build();
+    public Result<ApiInfo> getApiById(@PathVariable Long id) {
+        try {
+            ApiInfo apiInfo = apiInfoService.getApiInfoById(id);
+            if (apiInfo != null) {
+                return Result.success(apiInfo);
+            } else {
+                return Result.error(404, "API不存在");
+            }
+        } catch (Exception e) {
+            return Result.error("获取API信息失败: " + e.getMessage());
         }
     }
 
@@ -45,7 +55,7 @@ public class ApiManagementController {
      * 创建或更新API
      */
     @PostMapping("/api")
-    public ResponseEntity<String> saveApi(@RequestBody ApiInfo apiInfo) {
+    public Result<String> saveApi(@RequestBody ApiInfo apiInfo) {
         try {
             // 保存API基本信息
             boolean result = false;
@@ -55,7 +65,7 @@ public class ApiManagementController {
                 result = apiInfoService.updateApiInfo(apiInfo);
             }
             if (!result) {
-                return ResponseEntity.badRequest().body("保存API失败");
+                return Result.error("保存API失败");
             }
 
             // 保存API参数
@@ -70,10 +80,10 @@ public class ApiManagementController {
                 }
             }
 
-            return ResponseEntity.ok("API保存成功");
+            return Result.success("API保存成功", "API保存成功");
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().body("保存API失败: " + e.getMessage());
+            return Result.error("保存API失败: " + e.getMessage());
         }
     }
 
@@ -81,7 +91,7 @@ public class ApiManagementController {
      * 删除API
      */
     @DeleteMapping("/api/{id}")
-    public ResponseEntity<String> deleteApi(@PathVariable Long id) {
+    public Result<String> deleteApi(@PathVariable Long id) {
         try {
             // 先删除关联的参数
             apiParameterService.deleteParametersByApiId(id);
@@ -89,13 +99,13 @@ public class ApiManagementController {
             // 再删除API本身
             boolean result = apiInfoService.deleteApiInfo(id);
             if (result) {
-                return ResponseEntity.ok("API删除成功");
+                return Result.success("API删除成功", "API删除成功");
             } else {
-                return ResponseEntity.badRequest().body("API删除失败");
+                return Result.error("API删除失败");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().body("API删除失败: " + e.getMessage());
+            return Result.error("API删除失败: " + e.getMessage());
         }
     }
 
@@ -103,13 +113,13 @@ public class ApiManagementController {
      * 获取API的参数
      */
     @GetMapping("/api/{id}/parameters")
-    public ResponseEntity<List<ApiParameter>> getApiParameters(@PathVariable Long id) {
+    public Result<List<ApiParameter>> getApiParameters(@PathVariable Long id) {
         try {
             List<ApiParameter> parameters = apiParameterService.getParametersByApiId(id);
-            return ResponseEntity.ok(parameters);
+            return Result.success(parameters);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().build();
+            return Result.error("获取API参数失败: " + e.getMessage());
         }
     }
 
@@ -117,23 +127,23 @@ public class ApiManagementController {
      * 更新API状态
      */
     @PutMapping("/api/{id}/status")
-    public ResponseEntity<String> updateApiStatus(@PathVariable Long id, @RequestBody StatusRequest statusRequest) {
+    public Result<String> updateApiStatus(@PathVariable Long id, @RequestBody StatusRequest statusRequest) {
         try {
             ApiInfo apiInfo = apiInfoService.getApiInfoById(id);
             if (apiInfo != null) {
                 apiInfo.setStatus(statusRequest.getStatus());
                 boolean result = apiInfoService.updateApiInfo(apiInfo);
                 if (result) {
-                    return ResponseEntity.ok("API状态更新成功");
+                    return Result.success("API状态更新成功", "API状态更新成功");
                 } else {
-                    return ResponseEntity.badRequest().body("API状态更新失败");
+                    return Result.error("API状态更新失败");
                 }
             } else {
-                return ResponseEntity.notFound().build();
+                return Result.error(404, "API不存在");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().body("API状态更新失败: " + e.getMessage());
+            return Result.error("API状态更新失败: " + e.getMessage());
         }
     }
 

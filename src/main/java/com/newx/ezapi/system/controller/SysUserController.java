@@ -1,8 +1,8 @@
 package com.newx.ezapi.system.controller;
 
-
 import com.newx.ezapi.api.auth.entity.User;
 import com.newx.ezapi.api.auth.service.UserService;
+import com.newx.ezapi.common.result.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,18 +23,12 @@ public class SysUserController {
      * 创建用户
      */
     @PostMapping("/user/create")
-    public ResponseEntity<Map<String, Object>> createUser(@RequestBody User user) {
+    public Result<User> createUser(@RequestBody User user) {
         try {
             User createdUser = userService.createUser(user);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", createdUser);
-            return ResponseEntity.ok(response);
+            return Result.success(createdUser, "创建用户成功");
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "创建用户失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("创建用户失败: " + e.getMessage());
         }
     }
 
@@ -42,18 +36,12 @@ public class SysUserController {
      * 获取所有用户
      */
     @GetMapping("/users")
-    public ResponseEntity<Map<String, Object>> getAllUsers() {
+    public Result<List<User>> getAllUsers() {
         try {
             List<User> users = userService.getAllUsers();
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", users);
-            return ResponseEntity.ok(response);
+            return Result.success(users);
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "获取用户列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取用户列表失败: " + e.getMessage());
         }
     }
 
@@ -62,15 +50,12 @@ public class SysUserController {
      * 更新用户信息
      */
     @PutMapping("/user/update")
-    public ResponseEntity<Map<String, Object>> updateUser(@RequestBody User user) {
+    public Result<String> updateUser(@RequestBody User user) {
         try {
             // 获取原用户信息以保留密码
             User existingUser = userService.findByUsername(user.getUsername());
             if (existingUser == null) {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("message", "用户不存在");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("用户不存在");
             }
 
             // 保留原密码
@@ -80,21 +65,12 @@ public class SysUserController {
 
             boolean result = userService.updateUser(user);
             if (result) {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("message", "用户信息更新成功");
-                return ResponseEntity.ok(response);
+                return Result.success("用户信息更新成功", "用户信息更新成功");
             } else {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("message", "用户信息更新失败");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("用户信息更新失败");
             }
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "更新用户信息失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("更新用户信息失败: " + e.getMessage());
         }
     }
 
@@ -102,38 +78,58 @@ public class SysUserController {
      * 修改用户密码
      */
     @PostMapping("/user/change-password")
-    public ResponseEntity<Map<String, Object>> changePassword(@RequestBody Map<String, String> request) {
+    public Result<String> changePassword(@RequestBody Map<String, String> request) {
         try {
             String username = request.get("username");
             String oldPassword = request.get("oldPassword");
             String newPassword = request.get("newPassword");
 
             if (username == null || oldPassword == null || newPassword == null) {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("message", "用户名、旧密码和新密码不能为空");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("用户名、旧密码和新密码不能为空");
             }
 
             boolean result = userService.changePassword(username, oldPassword, newPassword);
             if (result) {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("message", "密码修改成功");
-                return ResponseEntity.ok(response);
+                return Result.success("密码修改成功", "密码修改成功");
             } else {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("message", "密码修改失败，请检查旧密码是否正确");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("密码修改失败，请检查旧密码是否正确");
             }
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "修改密码失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("修改密码失败: " + e.getMessage());
         }
     }
 
+    /**
+     * 删除用户
+     */
+    @DeleteMapping("/user/{id}")
+    public Result<String> deleteUser(@PathVariable Long id) {
+        try {
+            // 查找用户
+            List<User> allUsers = userService.getAllUsers();
+            User userToDelete = null;
+            for (User user : allUsers) {
+                if (user.getId().equals(id)) {
+                    userToDelete = user;
+                    break;
+                }
+            }
+            
+            if (userToDelete == null) {
+                return Result.error(404, "用户不存在");
+            }
 
+            // 在实际应用中，通常采用软删除，即将用户状态改为INACTIVE
+            userToDelete.setStatus("INACTIVE");
+            boolean result = userService.updateUser(userToDelete);
+
+            if (result) {
+                return Result.success("用户删除成功", "用户删除成功");
+            } else {
+                return Result.error("用户删除失败");
+            }
+        } catch (Exception e) {
+            return Result.error("删除用户失败: " + e.getMessage());
+        }
+    }
 }

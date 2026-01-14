@@ -67,7 +67,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getCurrentUser, login } from '@/utils/auth'
-import axios from 'axios'
+import { userApi } from '@/api'
 
 const profile = ref({
   id: null,
@@ -114,8 +114,9 @@ const updateProfile = async () => {
       password: undefined // 不包含密码字段
     }
     
-    const response = await axios.put('/api/auth/user/update', userData)
-    if (response.data.success) {
+    const response = await userApi.updateUser(userData)
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
       alert('基础信息更新成功')
       // 更新本地存储的用户信息
       const currentUser = getCurrentUser()
@@ -158,8 +159,9 @@ const changePassword = async () => {
       newPassword: passwordForm.value.newPassword
     }
     
-    const response = await axios.post('/api/auth/user/change-password', passwordData)
-    if (response.data.success) {
+    const response = await userApi.changePassword(passwordData)
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
       alert('密码修改成功，请重新登录')
       // 清除当前登录状态
       localStorage.removeItem('isLoggedIn')

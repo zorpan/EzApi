@@ -14,7 +14,11 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
-      }
+      },
+      '/sys': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     }
   },
   resolve: {

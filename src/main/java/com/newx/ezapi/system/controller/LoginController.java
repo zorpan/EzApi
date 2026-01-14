@@ -3,12 +3,10 @@ package com.newx.ezapi.system.controller;
 import com.newx.ezapi.api.auth.entity.User;
 import com.newx.ezapi.api.auth.service.UserService;
 import com.newx.ezapi.api.auth.util.JwtUtil;
+import com.newx.ezapi.common.result.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +25,7 @@ public class LoginController {
      * 用户登录
      */
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials) {
+    public Result<Map<String, Object>> login(@RequestBody Map<String, String> credentials) {
         try {
             String username = credentials.get("username");
             String password = credentials.get("password");
@@ -37,23 +35,16 @@ public class LoginController {
                 // 生成JWT令牌
                 String token = jwtUtil.generateToken(username);
 
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("data", user);
-                response.put("token", token); // 添加JWT令牌到响应
-                response.put("message", "登录成功");
-                return ResponseEntity.ok(response);
+                Map<String, Object> data = new HashMap<>();
+                data.put("user", user);
+                data.put("token", token);
+                
+                return Result.success(data, "登录成功");
             } else {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("message", "用户名或密码错误，或账户已被禁用");
-                return ResponseEntity.status(401).body(response);
+                return Result.error(401, "用户名或密码错误，或账户已被禁用");
             }
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "登录失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("登录失败: " + e.getMessage());
         }
     }
 

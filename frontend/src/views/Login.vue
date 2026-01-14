@@ -39,8 +39,8 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
-import { login as authLogin } from '../utils/auth.js'
+import { authApi } from '../api'
+import { login as authLogin, setAuthHeader } from '../utils/auth.js'
 
 const router = useRouter()
 const credentials = ref({
@@ -55,19 +55,19 @@ const handleLogin = async () => {
   errorMessage.value = ''
   
   try {
-    const response = await axios.post('/api/login', credentials.value)
+    const response = await authApi.login(credentials.value)
     
-    if (response.data.success) {
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
       // 保存用户信息和令牌到本地存储
-      authLogin(response.data.data)
+      authLogin(response.data.data.user)
       
       // 保存JWT令牌到localStorage
-      if (response.data.token) {
-        localStorage.setItem('authToken', response.data.token)
+      if (response.data.data && response.data.data.token) {
+        localStorage.setItem('authToken', response.data.data.token)
+        // 设置认证请求头
+        setAuthHeader(response.data.data.token)
       }
-      
-      // 设置axios默认请求头
-      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`
       
       // 跳转到首页
       router.push('/')
@@ -76,7 +76,7 @@ const handleLogin = async () => {
     }
   } catch (error) {
     console.error('登录错误:', error)
-    errorMessage.value = error.response?.data?.message || '登录失败，请重试'
+    errorMessage.value = error.response?.data?.message || error.message || '登录失败，请重试'
   } finally {
     loading.value = false
   }

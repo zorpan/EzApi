@@ -13,12 +13,12 @@
       <li class="nav-item">
         <router-link to="/auth" class="nav-link">授权管理</router-link>
       </li>
-<!--      <li class="nav-item">-->
-<!--        <router-link to="/rules" class="nav-link">授权规则管理</router-link>-->
-<!--      </li>-->
-<!--      <li class="nav-item">-->
-<!--        <router-link to="/users" class="nav-link">用户管理</router-link>-->
-<!--      </li>-->
+      <li class="nav-item">
+        <router-link to="/rules" class="nav-link">授权规则管理</router-link>
+      </li>
+      <li class="nav-item">
+        <router-link to="/users" class="nav-link">用户管理</router-link>
+      </li>
       <li class="nav-item">
         <router-link to="/profile" class="nav-link">个人中心</router-link>
       </li>

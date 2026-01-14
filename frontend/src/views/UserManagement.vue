@@ -155,7 +155,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { userApi } from '../api'
 
 const users = ref([])
 const loading = ref(false)
@@ -178,7 +178,8 @@ onMounted(() => {
 const loadUsers = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/auth/users') // 获取所有用户
+    const response = await userApi.getAllUsers() // 获取所有用户
+    // 适配新的Result响应结构
     users.value = response.data.data || []
   } catch (error) {
     console.error('加载用户失败:', error)
@@ -219,14 +220,15 @@ const saveUser = async () => {
   try {
     let response
     if (currentUser.value.id) {
-      // 更新现有用户 - 后端可能没有直接的更新API，我们使用创建接口
-      response = await axios.post('/api/auth/user/create', currentUser.value)
+      // 更新现有用户
+      response = await userApi.updateUser(currentUser.value)
     } else {
       // 创建新用户
-      response = await axios.post('/api/auth/user/create', currentUser.value)
+      response = await userApi.createUser(currentUser.value)
     }
     
-    if (response.data.success) {
+    // 适配新的Result响应结构
+    if (response.data.code === 200) {
       alert(currentUser.value.id ? '更新用户成功' : '创建用户成功')
       closeUserDialog()
       await loadUsers()
@@ -242,8 +244,9 @@ const saveUser = async () => {
 const deleteUser = async (user) => {
   if (confirm(`确定要删除用户 "${user.username}" 吗？`)) {
     try {
-      const response = await axios.delete(`/api/auth/user/${user.id}`)
-      if (response.data.success) {
+      const response = await userApi.deleteUser(user.id)
+      // 适配新的Result响应结构
+      if (response.data.code === 200) {
         alert('删除用户成功')
         await loadUsers()
       } else {
