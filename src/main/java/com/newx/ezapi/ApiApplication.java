@@ -1,12 +1,11 @@
 package com.newx.ezapi;
 
-import com.newx.ezapi.api.datasource.config.DataSourceModuleConfig;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Import;
 
 @SpringBootApplication
-@Import(DataSourceModuleConfig.class)
+@MapperScan("com.newx.ezapi.**.mapper")
 public class ApiApplication {
 
     public static void main(String[] args) {

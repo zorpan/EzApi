@@ -1,10 +1,17 @@
 package com.newx.ezapi.common.result;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * 统一API响应结果封装类
+ * @author panxingya
  * @param <T> 返回数据类型
  */
+@Setter
+@Getter
 public class Result<T> {
+    // Getter和Setter方法
     private int code;
     private String message;
     private T data;
@@ -43,28 +50,4 @@ public class Result<T> {
         return new Result<>(code, message, data);
     }
 
-    // Getter和Setter方法
-    public int getCode() {
-        return code;
-    }
-
-    public void setCode(int code) {
-        this.code = code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public T getData() {
-        return data;
-    }
-
-    public void setData(T data) {
-        this.data = data;
-    }
 }

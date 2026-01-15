@@ -1,8 +1,8 @@
-package com.newx.ezapi.api.datasource.service;
+package com.newx.ezapi.core.service;
 
-import com.newx.ezapi.api.datasource.entity.DataSourceConfig;
-import com.newx.ezapi.api.datasource.service.impl.DataSourceManagerImpl;
-import com.newx.ezapi.api.datasource.service.impl.MyBatisBasedQueryServiceImpl;
+import com.newx.ezapi.core.entity.DataSourceConfig;
+import com.newx.ezapi.core.service.impl.DataSourceManagerImpl;
+import com.newx.ezapi.core.service.impl.MyBatisBasedQueryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,7 +25,7 @@ public class MyBatisQueryServiceTest {
     @BeforeEach
     void setUp() {
         dataSourceManager = new DataSourceManagerImpl();
-        databaseQueryService = new com.newx.ezapi.api.datasource.service.impl.DatabaseQueryServiceImpl();
+        databaseQueryService = new com.newx.ezapi.core.service.impl.DatabaseQueryServiceImpl();
         myBatisQueryService = new MyBatisBasedQueryServiceImpl();
         
         // 设置依赖（通过反射）
