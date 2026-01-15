@@ -59,19 +59,6 @@ CREATE TABLE IF NOT EXISTS authorization_token (
     rate_limit_per_hour INT DEFAULT 0 COMMENT '访问频率限制（每小时请求数）'
 ) COMMENT='授权令牌表';
 
--- 创建授权规则表
-CREATE TABLE IF NOT EXISTS authorization_rule (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    rule_name VARCHAR(255) NOT NULL COMMENT '规则名称',
-    rule_type VARCHAR(50) NOT NULL COMMENT '规则类型',
-    api_id BIGINT COMMENT '关联的API ID',
-    rule_content TEXT COMMENT '规则内容',
-    status VARCHAR(20) DEFAULT 'ACTIVE' COMMENT '规则状态',
-    create_time DATETIME COMMENT '创建时间',
-    update_time DATETIME COMMENT '更新时间',
-    description TEXT COMMENT '描述'
-) COMMENT='授权规则表';
-
 -- 创建API密钥与API关联表
 CREATE TABLE IF NOT EXISTS authorization_token_api (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -84,7 +71,7 @@ CREATE TABLE IF NOT EXISTS authorization_token_api (
 ) COMMENT='API密钥与API关联表';
 
 -- 创建用户表
-CREATE TABLE IF NOT EXISTS user (
+CREATE TABLE IF NOT EXISTS sys_user (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE COMMENT '用户名',
     password VARCHAR(255) NOT NULL COMMENT '密码',

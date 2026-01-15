@@ -1,8 +1,8 @@
-package com.newx.ezapi.api.datasource.service;
+package com.newx.ezapi.core.service;
 
-import com.newx.ezapi.api.datasource.entity.DataSourceConfig;
-import com.newx.ezapi.api.datasource.service.impl.DataSourceManagerImpl;
-import com.newx.ezapi.api.datasource.service.impl.DatabaseQueryServiceImpl;
+import com.newx.ezapi.core.entity.DataSourceConfig;
+import com.newx.ezapi.core.service.impl.DataSourceManagerImpl;
+import com.newx.ezapi.core.service.impl.DatabaseQueryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

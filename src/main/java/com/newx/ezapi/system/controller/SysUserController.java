@@ -1,13 +1,12 @@
 package com.newx.ezapi.system.controller;
 
-import com.newx.ezapi.api.auth.entity.User;
-import com.newx.ezapi.api.auth.service.UserService;
 import com.newx.ezapi.common.result.Result;
+import com.newx.ezapi.system.entity.SysUser;
+import com.newx.ezapi.system.service.SysUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,16 +15,16 @@ import java.util.Map;
 public class SysUserController {
 
     @Autowired
-    private UserService userService;
+    private SysUserService userService;
 
 
     /**
      * 创建用户
      */
     @PostMapping("/user/create")
-    public Result<User> createUser(@RequestBody User user) {
+    public Result<SysUser> createUser(@RequestBody SysUser user) {
         try {
-            User createdUser = userService.createUser(user);
+            SysUser createdUser = userService.createUser(user);
             return Result.success(createdUser, "创建用户成功");
         } catch (Exception e) {
             return Result.error("创建用户失败: " + e.getMessage());
@@ -36,9 +35,9 @@ public class SysUserController {
      * 获取所有用户
      */
     @GetMapping("/users")
-    public Result<List<User>> getAllUsers() {
+    public Result<List<SysUser>> getAllUsers() {
         try {
-            List<User> users = userService.getAllUsers();
+            List<SysUser> users = userService.getAllUsers();
             return Result.success(users);
         } catch (Exception e) {
             return Result.error("获取用户列表失败: " + e.getMessage());
@@ -50,10 +49,10 @@ public class SysUserController {
      * 更新用户信息
      */
     @PutMapping("/user/update")
-    public Result<String> updateUser(@RequestBody User user) {
+    public Result<String> updateUser(@RequestBody SysUser user) {
         try {
             // 获取原用户信息以保留密码
-            User existingUser = userService.findByUsername(user.getUsername());
+            SysUser existingUser = userService.findByUsername(user.getUsername());
             if (existingUser == null) {
                 return Result.error("用户不存在");
             }
@@ -106,9 +105,9 @@ public class SysUserController {
     public Result<String> deleteUser(@PathVariable Long id) {
         try {
             // 查找用户
-            List<User> allUsers = userService.getAllUsers();
-            User userToDelete = null;
-            for (User user : allUsers) {
+            List<SysUser> allUsers = userService.getAllUsers();
+            SysUser userToDelete = null;
+            for (SysUser user : allUsers) {
                 if (user.getId().equals(id)) {
                     userToDelete = user;
                     break;

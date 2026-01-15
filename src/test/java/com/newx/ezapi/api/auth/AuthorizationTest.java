@@ -1,7 +1,7 @@
-package com.newx.ezapi.api.auth;
+package com.newx.ezapi.auth;
 
-import com.newx.ezapi.api.auth.entity.AuthorizationToken;
-import com.newx.ezapi.api.auth.service.AuthorizationTokenService;
+import com.newx.ezapi.auth.entity.AuthorizationToken;
+import com.newx.ezapi.auth.service.AuthorizationTokenService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

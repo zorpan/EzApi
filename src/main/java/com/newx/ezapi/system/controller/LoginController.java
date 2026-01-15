@@ -1,11 +1,10 @@
 package com.newx.ezapi.system.controller;
 
-import com.newx.ezapi.api.auth.entity.User;
-import com.newx.ezapi.api.auth.service.UserService;
-import com.newx.ezapi.api.auth.util.JwtUtil;
+import com.newx.ezapi.auth.util.JwtUtil;
 import com.newx.ezapi.common.result.Result;
+import com.newx.ezapi.system.entity.SysUser;
+import com.newx.ezapi.system.service.SysUserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -16,7 +15,7 @@ import java.util.Map;
 public class LoginController {
 
     @Autowired
-    private UserService userService;
+    private SysUserService userService;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -30,7 +29,7 @@ public class LoginController {
             String username = credentials.get("username");
             String password = credentials.get("password");
 
-            User user = userService.authenticate(username, password);
+            SysUser user = userService.authenticate(username, password);
             if (user != null && "ACTIVE".equals(user.getStatus())) {
                 // 生成JWT令牌
                 String token = jwtUtil.generateToken(username);
