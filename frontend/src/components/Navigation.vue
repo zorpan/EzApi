@@ -19,6 +19,9 @@
       <li class="nav-item">
         <router-link to="/profile" class="nav-link">个人中心</router-link>
       </li>
+      <li class="nav-item">
+        <router-link to="/drivers" class="nav-link">驱动管理</router-link>
+      </li>
     </ul>
   </nav>
 </template>

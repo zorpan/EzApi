@@ -81,10 +81,33 @@
               </el-form-item>
               
               <el-form-item label="驱动类名 *" prop="driverClassName">
+                <!-- 仅当数据库类型为 'other' 时显示驱动选择器 -->
+                <el-select 
+                  v-if="currentDataSource.dbType === 'other'"
+                  v-model="currentDataSource.driverId"
+                  placeholder="请选择驱动"
+                  @change="onDriverChange"
+                  style="width: 100%"
+                >
+                  <el-option 
+                    v-for="driver in availableDrivers" 
+                    :key="driver.id" 
+                    :label="`${driver.driverName} (${driver.driverClassName})`" 
+                    :value="driver.id"
+                  />
+                </el-select>
+                
+                <!-- 当数据库类型不为 'other' 时显示输入框 -->
                 <el-input 
+                  v-else
                   v-model="currentDataSource.driverClassName" 
                   placeholder="例如: com.mysql.cj.jdbc.Driver"
                 />
+                
+                <!-- 当没有可用驱动时的提示 -->
+                <div v-if="currentDataSource.dbType === 'other' && availableDrivers.length === 0" class="driver-hint">
+                  没有可用的自定义驱动，请先在驱动管理页面上传驱动文件。
+                </div>
               </el-form-item>
               
               <el-form-item label="连接URL *" prop="url">
@@ -129,6 +152,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { dataSourceApi } from '../api'
+import { driverApi } from '../api' // 添加驱动API导入
 import { ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton } from 'element-plus'
 
 const dataSources = ref([])
@@ -136,6 +160,8 @@ const loading = ref(false)
 const showModal = ref(false)
 const submitted = ref(false)
 const databaseTypes = ref([]) // 数据库类型列表
+const availableDrivers = ref([]) // 可用驱动列表
+const showDriverSelector = ref(false) // 是否显示驱动选择器
 const currentDataSource = ref({
   id: '',
   name: '',
@@ -144,7 +170,8 @@ const currentDataSource = ref({
   username: '',
   password: '',
   dbType: '',
-  enabled: true
+  enabled: true,
+  driverId:''
 })
 
 // 表单验证规则
@@ -155,8 +182,27 @@ const dataSourceRules = {
   dbType: [
     { required: true, message: '请选择数据库类型', trigger: 'change' }
   ],
-  driverClassName: [
-    { required: true, message: '请输入驱动类名', trigger: 'blur' }
+  driverId: [
+    { 
+      validator: (rule, value, callback) => {
+        if (currentDataSource.value.dbType === 'other') {
+          // 如果是other类型，必须从下拉框选择驱动
+          if (!value || value.trim() === '') {
+            callback(new Error('请选择驱动'))
+          } else {
+            callback()
+          }
+        } else {
+          // 如果不是other类型，必须填写驱动类名
+          if (!value || value.trim() === '') {
+            callback(new Error('请输入驱动类名'))
+          } else {
+            callback()
+          }
+        }
+      },
+      trigger: 'blur change'
+    }
   ],
   url: [
     { required: true, message: '请输入连接URL', trigger: 'blur' }
@@ -177,10 +223,22 @@ const loadDatabaseTypes = async () => {
   try {
     const response = await dataSourceApi.getDatabaseTypes()
     // 适配新的Result响应结构
-    debugger
     databaseTypes.value = response.data.data || []
   } catch (error) {
     console.error('加载数据库类型失败:', error)
+  }
+}
+
+// 加载可用的驱动列表
+const loadAvailableDrivers = async () => {
+  try {
+    const response = await driverApi.getAllDrivers()
+    debugger
+    // 仅加载激活状态的驱动
+    availableDrivers.value = (response.data.data || []).filter(driver => driver.isActive)
+  } catch (error) {
+    console.error('加载可用驱动失败:', error)
+    availableDrivers.value = [] // 设置为空数组
   }
 }
 
@@ -197,7 +255,7 @@ const loadDataSources = async () => {
   }
 }
 
-const openAddDialog = () => {
+const openAddDialog = async () => {
   currentDataSource.value = {
     name: '',
     driverClassName: '',
@@ -215,28 +273,56 @@ const openAddDialog = () => {
   }
 }
 
-const editDataSource = (row) => {
+const editDataSource = async (row) => {
   currentDataSource.value = { ...row }
   // 密码不应在编辑时显示，除非需要更新
   currentDataSource.value.password = '' // 清空密码字段以避免暴露
   submitted.value = false
   showModal.value = true
+  
+  // 如果编辑的是 'other' 类型的数据源，加载驱动列表
+  if (row.dbType === 'other') {
+    await loadAvailableDrivers()
+  }
+  
   // 清除表单验证
   if (dataSourceFormRef.value) {
     dataSourceFormRef.value.clearValidate()
   }
 }
 
-const onDbTypeChange = () => {
+const onDbTypeChange = async () => {
   if (currentDataSource.value.dbType) {
+    if (currentDataSource.value.dbType === 'other') {
+      // 如果选择了 'other' 类型，加载可用驱动
+      await loadAvailableDrivers()
+    }
+    
     const selectedDbType = databaseTypes.value.find(type => type.type === currentDataSource.value.dbType)
-    if (selectedDbType) {
+    if (selectedDbType && currentDataSource.value.dbType !== 'other') {
       currentDataSource.value.driverClassName = selectedDbType.driverClass
       // 使用默认模板，实际应用中可能需要用户输入host、port、database等参数
       currentDataSource.value.url = selectedDbType.connectionTemplate
     }
   }
 }
+
+// 当选择驱动时更新URL
+const onDriverChange = () => {
+  if (currentDataSource.value.dbType === 'other' && currentDataSource.value.driverId) {
+    // 查找所选驱动类名对应的驱动
+    const selectedDriver = availableDrivers.value.find(driver => 
+      driver.id === currentDataSource.value.driverId
+    )
+    
+    if (selectedDriver && selectedDriver.exampleJdbcUrl) {
+      // 将驱动的示例JDBC URL填充到连接URL字段
+      currentDataSource.value.url = selectedDriver.exampleJdbcUrl
+      currentDataSource.value.driverClassName = selectedDriver.driverClassName
+    }
+  }
+}
+
 const closeModal = () => {
   showModal.value = false
 }
@@ -515,5 +601,15 @@ const toggleDataSourceStatus = (row) => {
 .modal-body :deep(.el-input__wrapper),
 .modal-body :deep(.el-select__wrapper) {
   border-radius: 4px;
+}
+
+.driver-hint {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: #f5f7fa;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #909399;
 }
 </style>

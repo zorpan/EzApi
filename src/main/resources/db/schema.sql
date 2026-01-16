@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS data_source_info (
     password VARCHAR(255) COMMENT '密码',
     db_type VARCHAR(50) COMMENT '数据库类型',
     enabled TINYINT(1) DEFAULT 1 COMMENT '是否启用',
+    driver_id BIGINT COMMENT '关联的数据库驱动ID',
     description TEXT COMMENT '描述',
     created_time BIGINT COMMENT '创建时间戳',
     updated_time BIGINT COMMENT '更新时间戳'
@@ -82,3 +83,19 @@ CREATE TABLE IF NOT EXISTS sys_user (
     email VARCHAR(100) COMMENT '邮箱',
     description TEXT COMMENT '描述'
 ) COMMENT='用户表';
+
+-- 创建数据库驱动表
+CREATE TABLE IF NOT EXISTS database_driver (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    driver_name VARCHAR(255) NOT NULL COMMENT '驱动名称',
+    driver_version VARCHAR(100) COMMENT '驱动版本',
+    driver_description TEXT COMMENT '驱动描述',
+    driver_file_name VARCHAR(500) COMMENT '驱动文件名',
+    driver_file_path VARCHAR(1000) COMMENT '驱动文件路径',
+    driver_class_name VARCHAR(500) COMMENT '驱动类名',
+    example_jdbc_url VARCHAR(1000) COMMENT '示例JDBC URL',
+    supported_db_types VARCHAR(500) COMMENT '支持的数据库类型',
+    is_active TINYINT(1) DEFAULT 1 COMMENT '是否激活',
+    created_time BIGINT COMMENT '创建时间戳',
+    updated_time BIGINT COMMENT '更新时间戳'
+) COMMENT='数据库驱动表';
