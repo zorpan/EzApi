@@ -24,8 +24,8 @@
       <vxe-column field="apiMethod" title="请求方法" width="120"></vxe-column>
       <vxe-column field="status" title="状态" width="100">
         <template #default="{ row }">
-          <span :class="row.status === 0 ? 'status-active' : 'status-inactive'">
-            {{ row.status === 0 ? '启用' : '禁用' }}
+          <span :class="row.status === 1 ? 'status-active' : 'status-inactive'">
+            {{ row.status === 1 ? '启用' : '禁用' }}
           </span>
         </template>
       </vxe-column>
@@ -36,10 +36,10 @@
           <button class="btn btn-sm btn-warning" @click="openAddEditDialog(row)">编辑</button>
           <button class="btn btn-sm btn-danger" @click="deleteApi(row)">删除</button>
           <button 
-            :class="['btn', 'btn-sm', row.status === 0 ? 'btn-inactive' : 'btn-active']"
+            :class="['btn', 'btn-sm', row.status === 1 ? 'btn-inactive' : 'btn-active']"
             @click="toggleApiStatus(row)"
           >
-            {{ row.status === 0 ? '禁用' : '启用' }}
+            {{ row.status === 1 ? '禁用' : '启用' }}
           </button>
         </template>
       </vxe-column>
@@ -215,7 +215,7 @@
             </div>
             <div class="detail-item">
               <label>状态:</label>
-              <span :class="selectedApi.status === 0 ? 'status-active' : 'status-inactive'">
+              <span :class="selectedApi.status === 1 ? 'status-active' : 'status-inactive'">
                 {{ selectedApi.status === 0 ? '启用' : '禁用' }}
               </span>
             </div>
@@ -379,7 +379,7 @@ const toggleApiStatus = async (api) => {
     const response = await apiManagementApi.updateApiStatus(api.id, { status: newStatus })
     // 适配新的Result响应结构
     if (response.data.code === 200) {
-      alert(`接口${newStatus === 0 ? '启用' : '禁用'}成功`)
+      alert(`接口${newStatus === 1 ? '启用' : '禁用'}成功`)
       await loadApis()
     } else {
       alert('状态切换失败: ' + response.data.message)

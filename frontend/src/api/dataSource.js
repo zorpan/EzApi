@@ -9,9 +9,9 @@ export const getDatabaseTypes = () => {
 }
 
 // 添加数据源
-export const addDataSource = (config) => {
+export const saveDataSource = (config) => {
   return request({
-    url: '/api/datasource/add',
+    url: '/api/datasource/save',
     method: 'post',
     data: config
   })

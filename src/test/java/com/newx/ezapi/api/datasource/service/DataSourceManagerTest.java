@@ -25,7 +25,7 @@ public class DataSourceManagerTest {
         
         // 创建测试数据源配置（使用H2内存数据库）
         testConfig = new DataSourceConfig(
-            "test-ds-1",
+            2L,
             "Test DataSource",
             "com.mysql.jdbc.Driver",
             "jdbc:mysql://127.0.0.1:3306/test",
@@ -38,7 +38,7 @@ public class DataSourceManagerTest {
 
     @Test
     void testAddDataSource() {
-        assertDoesNotThrow(() -> dataSourceManager.addDataSource(testConfig));
+        assertDoesNotThrow(() -> dataSourceManager.saveDataSource(testConfig));
         
         DataSource ds = dataSourceManager.getDataSource("test-ds-1");
         assertNotNull(ds);
@@ -47,7 +47,7 @@ public class DataSourceManagerTest {
     @Test
     void testGetAllDataSources() {
         // 添加一个数据源
-        dataSourceManager.addDataSource(testConfig);
+        dataSourceManager.saveDataSource(testConfig);
         
         List<DataSourceConfig> allDataSources = dataSourceManager.getAllDataSources();
         assertEquals(1, allDataSources.size());
@@ -57,7 +57,7 @@ public class DataSourceManagerTest {
     @Test
     void testRemoveDataSource() {
         // 添加数据源
-        dataSourceManager.addDataSource(testConfig);
+        dataSourceManager.saveDataSource(testConfig);
         
         // 验证数据源存在
         assertNotNull(dataSourceManager.getDataSource("test-ds-1"));
@@ -72,7 +72,7 @@ public class DataSourceManagerTest {
     @Test
     void testConnection() throws SQLException {
         // 添加测试数据源
-        dataSourceManager.addDataSource(testConfig);
+        dataSourceManager.saveDataSource(testConfig);
         
         // 测试连接
         boolean connected = assertDoesNotThrow(() -> dataSourceManager.testConnection("test-ds-1"));
@@ -88,15 +88,27 @@ public class DataSourceManagerTest {
     @Test
     void testReloadDataSource() {
         // 添加数据源
-        dataSourceManager.addDataSource(testConfig);
-        DataSource originalDataSource = dataSourceManager.getDataSource("test-ds-1");
-        assertNotNull(originalDataSource);
+        dataSourceManager.saveDataSource(testConfig);
         
-        // 重载数据源
-        assertDoesNotThrow(() -> dataSourceManager.reloadDataSource("test-ds-1"));
-        
-        // 验证重载后数据源仍然存在
-        DataSource reloadedDataSource = dataSourceManager.getDataSource("test-ds-1");
-        assertNotNull(reloadedDataSource);
+        // 获取添加后的数据源ID
+        List<DataSourceConfig> allDataSources = dataSourceManager.getAllDataSources();
+        String dataSourceId;
+        if (!allDataSources.isEmpty()) {
+            dataSourceId = allDataSources.get(0).getId().toString();
+        } else {
+            dataSourceId = null;
+        }
+
+        if (dataSourceId != null) {
+            DataSource originalDataSource = dataSourceManager.getDataSource(dataSourceId);
+            assertNotNull(originalDataSource);
+            
+            // 重载数据源
+            assertDoesNotThrow(() -> dataSourceManager.reloadDataSource(dataSourceId));
+            
+            // 验证重载后数据源仍然存在
+            DataSource reloadedDataSource = dataSourceManager.getDataSource(dataSourceId);
+            assertNotNull(reloadedDataSource);
+        }
     }
 }

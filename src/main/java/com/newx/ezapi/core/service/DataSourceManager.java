@@ -8,9 +8,9 @@ import java.util.List;
 
 public interface DataSourceManager {
     /**
-     * 添加数据源配置
+     * 保存数据源配置
      */
-    void addDataSource(DataSourceConfig config);
+    void saveDataSource(DataSourceConfig config);
 
     /**
      * 获取数据源

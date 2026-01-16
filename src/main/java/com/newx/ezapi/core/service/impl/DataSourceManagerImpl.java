@@ -32,42 +32,31 @@ public class DataSourceManagerImpl implements DataSourceManager {
     private final Map<String, ClassLoader> driverClassLoaders = new ConcurrentHashMap<>();
 
     @Override
-    public void addDataSource(DataSourceConfig config) {
+    public void saveDataSource(DataSourceConfig config) {
         // 如果数据源已存在，先移除
-        if (dataSources.containsKey(config.getId())) {
-            removeDataSource(config.getId());
+        if (config.getId() != null && dataSources.containsKey(config.getId().toString())) {
+            removeDataSource(config.getId().toString());
         }
         
         DataSourceInfo dataSourceInfo;
         // 检查是否为更新操作
         if (config.getId() != null) {
-            try {
-                Long id = Long.valueOf(config.getId());
-                // 尝试获取现有的数据源信息
-                DataSourceInfo existingInfo = dataSourceInfoService.getDataSourceInfoById(id);
-                if (existingInfo != null) {
-                    // 更新现有记录
-                    existingInfo.setName(config.getName());
-                    existingInfo.setDriverClassName(config.getDriverClassName());
-                    existingInfo.setUrl(config.getUrl());
-                    existingInfo.setUsername(config.getUsername());
-                    existingInfo.setPassword(config.getPassword());
-                    existingInfo.setDbType(config.getDbType());
-                    existingInfo.setEnabled(config.getEnabled());
-                    dataSourceInfo = existingInfo;
-                } else {
-                    // 如果ID不存在，创建新记录但不指定ID，让数据库自动生成
-                    dataSourceInfo = new DataSourceInfo();
-                    dataSourceInfo.setName(config.getName());
-                    dataSourceInfo.setDriverClassName(config.getDriverClassName());
-                    dataSourceInfo.setUrl(config.getUrl());
-                    dataSourceInfo.setUsername(config.getUsername());
-                    dataSourceInfo.setPassword(config.getPassword());
-                    dataSourceInfo.setDbType(config.getDbType());
-                    dataSourceInfo.setEnabled(config.getEnabled());
-                }
-            } catch (NumberFormatException e) {
-                // 如果ID不是数字，创建新记录
+            // 直接使用Long类型的ID
+            Long id = config.getId();
+            // 尝试获取现有的数据源信息
+            DataSourceInfo existingInfo = dataSourceInfoService.getDataSourceInfoById(id);
+            if (existingInfo != null) {
+                // 更新现有记录
+                existingInfo.setName(config.getName());
+                existingInfo.setDriverClassName(config.getDriverClassName());
+                existingInfo.setUrl(config.getUrl());
+                existingInfo.setUsername(config.getUsername());
+                existingInfo.setPassword(config.getPassword());
+                existingInfo.setDbType(config.getDbType());
+                existingInfo.setEnabled(config.getEnabled());
+                dataSourceInfo = existingInfo;
+            } else {
+                // 如果ID不存在，创建新记录但不指定ID，让数据库自动生成
                 dataSourceInfo = new DataSourceInfo();
                 dataSourceInfo.setName(config.getName());
                 dataSourceInfo.setDriverClassName(config.getDriverClassName());
@@ -130,7 +119,7 @@ public class DataSourceManagerImpl implements DataSourceManager {
         
         for (DataSourceInfo info : dataSourceInfos) {
             DataSourceConfig config = new DataSourceConfig();
-            config.setId(String.valueOf(info.getId()));
+            config.setId(info.getId());
             config.setName(info.getName());
             config.setDriverClassName(info.getDriverClassName());
             config.setUrl(info.getUrl());
@@ -193,7 +182,7 @@ public class DataSourceManagerImpl implements DataSourceManager {
                 
                 // 从数据库信息创建配置对象
                 DataSourceConfig config = new DataSourceConfig();
-                config.setId(String.valueOf(dataSourceInfo.getId()));
+                config.setId(dataSourceInfo.getId());
                 config.setName(dataSourceInfo.getName());
                 config.setDriverClassName(dataSourceInfo.getDriverClassName());
                 config.setUrl(dataSourceInfo.getUrl());
@@ -202,7 +191,7 @@ public class DataSourceManagerImpl implements DataSourceManager {
                 config.setDbType(dataSourceInfo.getDbType());
                 config.setEnabled(dataSourceInfo.getEnabled() != null && dataSourceInfo.getEnabled());
                 
-                addDataSource(config);
+                saveDataSource(config);
             }
         } catch (NumberFormatException e) {
             // 如果ID不是数字，无法从数据库加载
@@ -248,7 +237,7 @@ public class DataSourceManagerImpl implements DataSourceManager {
         for (DataSourceInfo info : dataSourceInfos) {
             if (info.getEnabled() != null && info.getEnabled()) {  // 只加载启用的数据源
                 DataSourceConfig config = new DataSourceConfig();
-                config.setId(String.valueOf(info.getId()));
+                config.setId(info.getId());
                 config.setName(info.getName());
                 config.setDriverClassName(info.getDriverClassName());
                 config.setUrl(info.getUrl());
@@ -257,7 +246,7 @@ public class DataSourceManagerImpl implements DataSourceManager {
                 config.setDbType(info.getDbType());
                 config.setEnabled(info.getEnabled());
                 
-                addDataSource(config);
+                saveDataSource(config);
             }
         }
     }

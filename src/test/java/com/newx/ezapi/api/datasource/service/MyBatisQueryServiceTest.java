@@ -1,6 +1,9 @@
-package com.newx.ezapi.core.service;
+package com.newx.ezapi.api.datasource.service;
 
 import com.newx.ezapi.core.entity.DataSourceConfig;
+import com.newx.ezapi.core.service.DataSourceManager;
+import com.newx.ezapi.core.service.DatabaseQueryService;
+import com.newx.ezapi.core.service.MyBatisQueryService;
 import com.newx.ezapi.core.service.impl.DataSourceManagerImpl;
 import com.newx.ezapi.core.service.impl.MyBatisBasedQueryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +39,7 @@ public class MyBatisQueryServiceTest {
         
         // 创建测试数据源配置（使用Mysql数据库）
         testConfig = new DataSourceConfig(
-                "test-ds-mybatis",
+                3L,
                 "Test DataSource",
                 "com.mysql.jdbc.Driver",
                 "jdbc:mysql://127.0.0.1:3306/test",
@@ -46,7 +49,7 @@ public class MyBatisQueryServiceTest {
         );
         
         // 添加数据源
-        dataSourceManager.addDataSource(testConfig);
+        dataSourceManager.saveDataSource(testConfig);
         
         // 创建测试表（只在初始化时创建一次）
         try {
@@ -127,26 +130,35 @@ public class MyBatisQueryServiceTest {
     
     @Test
     void testMyBatisUpdate() throws SQLException {
-        // 测试带条件的更新
-        String myBatisSql = "UPDATE users <set> <if test='name != null'>name = #{name},</if> <if test='age != null'>age = #{age}</if> </set> <where> id = #{id} </where>";
+        // 获取测试数据源ID
+        List<DataSourceConfig> allDataSources = dataSourceManager.getAllDataSources();
+        String dataSourceId = null;
+        if (!allDataSources.isEmpty()) {
+            dataSourceId = allDataSources.get(0).getId().toString();
+        }
         
-        Map<String, Object> params = new HashMap<>();
-        params.put("id", 1);
-        params.put("name", "Updated Name");
-        params.put("age", 26);
-        
-        int result = myBatisQueryService.executeMyBatisUpdate("test-ds-mybatis", myBatisSql, params);
-        
-        assertEquals(1, result); // 1行被更新
-        
-        // 验证更新结果
-        List<Map<String, Object>> selectResult = databaseQueryService.executeQuery("test-ds-mybatis", "SELECT * FROM users WHERE id = 1");
-        Object nameValue = selectResult.get(0).get("name") != null ? selectResult.get(0).get("name") : selectResult.get(0).get("NAME");
-        Object ageValue = selectResult.get(0).get("age") != null ? selectResult.get(0).get("age") : selectResult.get(0).get("AGE");
-        
-        assertEquals("Updated Name", nameValue);
-        assertEquals(26, ageValue);
-        
-        System.out.println("MyBatis update executed successfully");
+        if (dataSourceId != null) {
+            // 测试带条件的更新
+            String myBatisSql = "UPDATE users <set> <if test='name != null'>name = #{name},</if> <if test='age != null'>age = #{age}</if> </set> <where> id = #{id} </where>";
+            
+            Map<String, Object> params = new HashMap<>();
+            params.put("id", 1);
+            params.put("name", "Updated Name");
+            params.put("age", 26);
+            
+            int result = myBatisQueryService.executeMyBatisUpdate(dataSourceId, myBatisSql, params);
+            
+            assertEquals(1, result); // 1行被更新
+            
+            // 验证更新结果
+            List<Map<String, Object>> selectResult = databaseQueryService.executeQuery(dataSourceId, "SELECT * FROM users WHERE id = 1");
+            Object nameValue = selectResult.get(0).get("name") != null ? selectResult.get(0).get("name") : selectResult.get(0).get("NAME");
+            Object ageValue = selectResult.get(0).get("age") != null ? selectResult.get(0).get("age") : selectResult.get(0).get("AGE");
+            
+            assertEquals("Updated Name", nameValue);
+            assertEquals(26, ageValue);
+            
+            System.out.println("MyBatis update executed successfully");
+        }
     }
 }

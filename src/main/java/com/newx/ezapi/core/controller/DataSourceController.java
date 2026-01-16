@@ -37,10 +37,10 @@ public class DataSourceController {
     /**
      * 添加数据源
      */
-    @PostMapping("/add")
-    public Result<String> addDataSource(@RequestBody DataSourceConfig config) {
+    @PostMapping("/save")
+    public Result<String> saveDataSource(@RequestBody DataSourceConfig config) {
         try {
-            dataSourceManager.addDataSource(config);
+            dataSourceManager.saveDataSource(config);
             return Result.success("Data source added successfully", "数据源添加成功");
         } catch (Exception e) {
             return Result.error("Error adding data source: " + e.getMessage());

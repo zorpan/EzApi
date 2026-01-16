@@ -5,10 +5,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
 public enum DatabaseType {
-    MYSQL("mysql", "com.mysql.cj.jdbc.Driver", "jdbc:mysql://{host}:{port}/{database}?useSSL=false&serverTimezone=UTC"),
-    ORACLE("oracle", "oracle.jdbc.OracleDriver", "jdbc:oracle:thin:@{host}:{port}:{database}"),
-    SQLSERVER("sqlserver", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver://{host}:{port};databaseName={database}"),
-    POSTGRESQL("postgresql", "org.postgresql.Driver", "jdbc:postgresql://{host}:{port}/{database}");
+    MYSQL("mysql", "com.mysql.cj.jdbc.Driver", "jdbc:mysql://127.0.0.1:3306/database?useSSL=false&serverTimezone=UTC"),
+    ORACLE("oracle", "oracle.jdbc.OracleDriver", "jdbc:oracle:thin:@127.0.0.1:1521:database"),
+    SQLSERVER("sqlserver", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver://127.0.0.1:1433;databaseName=database"),
+    POSTGRESQL("postgresql", "org.postgresql.Driver", "jdbc:postgresql://127.0.0.1:5432/database");
 
     private final String type;
     private final String driverClass;
