@@ -44,4 +44,7 @@ public class DataSourceInfo {
 
     @TableField("updated_time")
     private Long updatedTime;
+
+    @TableField("driver_id")
+    private Long driverId;
 }

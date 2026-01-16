@@ -1,19 +1,28 @@
 package com.newx.ezapi.core.service.impl;
 
+import com.newx.ezapi.common.utils.ClassPathUtils;
 import com.newx.ezapi.core.entity.DataSourceConfig;
 import com.newx.ezapi.core.entity.DataSourceInfo;
+import com.newx.ezapi.core.entity.DatabaseDriver;
 import com.newx.ezapi.core.service.DataSourceInfoService;
 import com.newx.ezapi.core.service.DataSourceManager;
+import com.newx.ezapi.core.service.DatabaseDriverService;
+import com.newx.ezapi.core.utils.CustomHikariConfig;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,66 +39,52 @@ public class DataSourceManagerImpl implements DataSourceManager {
     private final Map<String, DataSource> dataSources = new ConcurrentHashMap<>();
     // 存储JDBC驱动类加载器
     private final Map<String, ClassLoader> driverClassLoaders = new ConcurrentHashMap<>();
+    @Autowired
+    private DatabaseDriverService databaseDriverService;
 
     @Override
+    @Transactional
     public void saveDataSource(DataSourceConfig config) {
         // 如果数据源已存在，先移除
         if (config.getId() != null && dataSources.containsKey(config.getId().toString())) {
             removeDataSource(config.getId().toString());
         }
-        
-        DataSourceInfo dataSourceInfo;
-        // 检查是否为更新操作
-        if (config.getId() != null) {
-            // 直接使用Long类型的ID
-            Long id = config.getId();
-            // 尝试获取现有的数据源信息
-            DataSourceInfo existingInfo = dataSourceInfoService.getDataSourceInfoById(id);
-            if (existingInfo != null) {
-                // 更新现有记录
-                existingInfo.setName(config.getName());
-                existingInfo.setDriverClassName(config.getDriverClassName());
-                existingInfo.setUrl(config.getUrl());
-                existingInfo.setUsername(config.getUsername());
-                existingInfo.setPassword(config.getPassword());
-                existingInfo.setDbType(config.getDbType());
-                existingInfo.setEnabled(config.getEnabled());
-                dataSourceInfo = existingInfo;
-            } else {
-                // 如果ID不存在，创建新记录但不指定ID，让数据库自动生成
-                dataSourceInfo = new DataSourceInfo();
-                dataSourceInfo.setName(config.getName());
-                dataSourceInfo.setDriverClassName(config.getDriverClassName());
-                dataSourceInfo.setUrl(config.getUrl());
-                dataSourceInfo.setUsername(config.getUsername());
-                dataSourceInfo.setPassword(config.getPassword());
-                dataSourceInfo.setDbType(config.getDbType());
-                dataSourceInfo.setEnabled(config.getEnabled());
-            }
-        } else {
-            // 新增操作
-            dataSourceInfo = new DataSourceInfo();
-            dataSourceInfo.setName(config.getName());
-            dataSourceInfo.setDriverClassName(config.getDriverClassName());
-            dataSourceInfo.setUrl(config.getUrl());
-            dataSourceInfo.setUsername(config.getUsername());
-            dataSourceInfo.setPassword(config.getPassword());
-            dataSourceInfo.setDbType(config.getDbType());
-            dataSourceInfo.setEnabled(config.getEnabled());
-        }
+
+        // 类型转换
+        DataSourceInfo dataSourceInfo = new DataSourceInfo();
+        BeanUtils.copyProperties(config, dataSourceInfo);
         
         boolean saved = dataSourceInfoService.saveDataSourceInfo(dataSourceInfo);
         if (!saved) {
             throw new RuntimeException("Failed to save data source to database");
         }
         
+
+    }
+
+    private DataSource createDataSource(DataSourceInfo config) throws Exception {
         // 创建数据源
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setJdbcUrl(config.getUrl());
         hikariConfig.setUsername(config.getUsername());
         hikariConfig.setPassword(config.getPassword());
-//        hikariConfig.setDriverClassName(config.getDriverClassName());
-        
+
+        if(config.getDbType().equals("other")) {
+            DatabaseDriver driverInfo = databaseDriverService.getDriverById(config.getDriverId());
+            ClassLoader driverClassLoader = ClassPathUtils.createClassLoader(System.getProperty("user.home")
+                    +File.separator+ ".drivers"+File.separator + driverInfo.getDriverFileName());
+            Class<?> v8Driver = driverClassLoader.loadClass(driverInfo.getDriverClassName());
+
+            Driver driver = (Driver) v8Driver.newInstance();
+            // 注册驱动
+            DriverManager.registerDriver(driver);
+            // 设置为线程上下文类加载器
+            Thread.currentThread().setContextClassLoader(driverClassLoader);
+
+            hikariConfig.setDriverClassName(v8Driver.getName());
+
+        }
+
         // 设置连接池参数
         hikariConfig.setMaximumPoolSize(20);
         hikariConfig.setMinimumIdle(5);
@@ -97,11 +92,12 @@ public class DataSourceManagerImpl implements DataSourceManager {
         hikariConfig.setIdleTimeout(600000);
         hikariConfig.setMaxLifetime(1800000);
         hikariConfig.setLeakDetectionThreshold(60000);
-        
+
         try {
             HikariDataSource dataSource = new HikariDataSource(hikariConfig);
             // 使用数据库生成的ID作为key
-            dataSources.put(String.valueOf(dataSourceInfo.getId()), dataSource);
+            dataSources.put(String.valueOf(config.getId()), dataSource);
+            return dataSource;
         } catch (Exception e) {
             throw new RuntimeException("Failed to create data source: " + e.getMessage(), e);
         }
@@ -109,6 +105,14 @@ public class DataSourceManagerImpl implements DataSourceManager {
 
     @Override
     public DataSource getDataSource(String dataSourceId) {
+        if(!dataSources.containsKey(dataSourceId)){
+            DataSourceInfo dataSourceInfo = dataSourceInfoService.getById(dataSourceId);
+            try {
+                return createDataSource(dataSourceInfo);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
         return dataSources.get(dataSourceId);
     }
 
@@ -127,6 +131,7 @@ public class DataSourceManagerImpl implements DataSourceManager {
             config.setPassword(info.getPassword());
             config.setDbType(info.getDbType());
             config.setEnabled(info.getEnabled() != null && info.getEnabled());
+            config.setDriverId(info.getDriverId());
             configs.add(config);
         }
         
@@ -179,7 +184,7 @@ public class DataSourceManagerImpl implements DataSourceManager {
             DataSourceInfo dataSourceInfo = dataSourceInfoService.getDataSourceInfoById(id);
             if (dataSourceInfo != null) {
                 removeDataSource(dataSourceId);
-                
+
                 // 从数据库信息创建配置对象
                 DataSourceConfig config = new DataSourceConfig();
                 config.setId(dataSourceInfo.getId());
@@ -190,7 +195,7 @@ public class DataSourceManagerImpl implements DataSourceManager {
                 config.setPassword(dataSourceInfo.getPassword());
                 config.setDbType(dataSourceInfo.getDbType());
                 config.setEnabled(dataSourceInfo.getEnabled() != null && dataSourceInfo.getEnabled());
-                
+
                 saveDataSource(config);
             }
         } catch (NumberFormatException e) {
@@ -204,21 +209,21 @@ public class DataSourceManagerImpl implements DataSourceManager {
         if (!jarFile.exists()) {
             throw new RuntimeException("JAR file does not exist: " + jarPath);
         }
-        
+
         URL jarUrl = jarFile.toURI().toURL();
-        URLClassLoader classLoader = new URLClassLoader(new URL[]{jarUrl}, 
+        URLClassLoader classLoader = new URLClassLoader(new URL[]{jarUrl},
                                                          Thread.currentThread().getContextClassLoader());
-        
+
         // 尝试加载驱动类以验证
         Class<?> driverClass = classLoader.loadClass(driverClassName);
         if (driverClass == null) {
             throw new RuntimeException("Could not load driver class: " + driverClassName);
         }
-        
+
         // 保存类加载器以便后续使用
         driverClassLoaders.put(driverClassName, classLoader);
     }
-    
+
     @Override
     public void reloadAllDataSourcesFromDb() {
         // 先关闭所有现有的数据源连接
@@ -228,10 +233,10 @@ public class DataSourceManagerImpl implements DataSourceManager {
                 ((HikariDataSource) dataSource).close();
             }
         }
-        
+
         // 清空现有缓存
         dataSources.clear();
-        
+
         // 从数据库加载所有数据源配置并重新创建
         List<DataSourceInfo> dataSourceInfos = dataSourceInfoService.getAllDataSourceInfos();
         for (DataSourceInfo info : dataSourceInfos) {
@@ -245,7 +250,7 @@ public class DataSourceManagerImpl implements DataSourceManager {
                 config.setPassword(info.getPassword());
                 config.setDbType(info.getDbType());
                 config.setEnabled(info.getEnabled());
-                
+
                 saveDataSource(config);
             }
         }
