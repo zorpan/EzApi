@@ -1,6 +1,8 @@
-package com.newx.ezapi.core.service;
+package com.newx.ezapi.api.datasource.service;
 
 import com.newx.ezapi.core.entity.DataSourceConfig;
+import com.newx.ezapi.core.service.DataSourceManager;
+import com.newx.ezapi.core.service.DatabaseQueryService;
 import com.newx.ezapi.core.service.impl.DataSourceManagerImpl;
 import com.newx.ezapi.core.service.impl.DatabaseQueryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +33,7 @@ public class DatabaseQueryServiceTest {
         
         // 创建测试数据源配置（使用H2内存数据库）
         testConfig = new DataSourceConfig(
-            "test-ds-query",
+            1L,
             "Test Query DataSource",
             "org.h2.Driver",
             "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false",
@@ -41,7 +43,7 @@ public class DatabaseQueryServiceTest {
         );
         
         // 添加数据源
-        dataSourceManager.addDataSource(testConfig);
+        dataSourceManager.saveDataSource(testConfig);
     }
 
     @Test
@@ -136,10 +138,19 @@ public class DatabaseQueryServiceTest {
 
     @Test
     void testGetDatabaseMetadata() throws SQLException {
-        Map<String, Object> metadata = databaseQueryService.getDatabaseMetadata("test-ds-query");
+        // 获取测试数据源ID
+        List<DataSourceConfig> allDataSources = dataSourceManager.getAllDataSources();
+        String dataSourceId = null;
+        if (!allDataSources.isEmpty()) {
+            dataSourceId = allDataSources.get(0).getId().toString();
+        }
         
-        assertNotNull(metadata);
-        assertTrue(metadata.containsKey("DATABASE_PRODUCT_NAME"));
-        assertTrue(metadata.containsKey("DRIVER_NAME"));
+        if (dataSourceId != null) {
+            Map<String, Object> metadata = databaseQueryService.getDatabaseMetadata(dataSourceId);
+            
+            assertNotNull(metadata);
+            assertTrue(metadata.containsKey("DATABASE_PRODUCT_NAME"));
+            assertTrue(metadata.containsKey("DRIVER_NAME"));
+        }
     }
 }

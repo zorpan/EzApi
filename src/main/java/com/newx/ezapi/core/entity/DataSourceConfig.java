@@ -1,7 +1,7 @@
 package com.newx.ezapi.core.entity;
 
 public class DataSourceConfig {
-    private String id;
+    private Long id;
     private String name;
     private String driverClassName;
     private String url;
@@ -14,7 +14,7 @@ public class DataSourceConfig {
     public DataSourceConfig() {
     }
 
-    public DataSourceConfig(String id, String name, String driverClassName, String url, 
+    public DataSourceConfig(Long id, String name, String driverClassName, String url, 
                            String username, String password, String dbType) {
         this.id = id;
         this.name = name;
@@ -27,11 +27,11 @@ public class DataSourceConfig {
     }
 
     // Getter和Setter方法
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

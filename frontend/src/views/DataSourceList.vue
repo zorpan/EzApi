@@ -50,48 +50,75 @@
             <button class="modal-close" @click="closeModal">&times;</button>
           </div>
           <div class="modal-body">
-            <form class="form">
-              <div class="form-group">
-                <label>数据源ID *</label>
-                <input type="text" v-model="currentDataSource.id" :disabled="!!currentDataSource.id" placeholder="数据源唯一标识">
-              </div>
-              <div class="form-group">
-                <label>数据源名称 *</label>
-                <input type="text" v-model="currentDataSource.name" placeholder="请输入数据源名称">
-              </div>
-              <div class="form-group">
-                <label>数据库类型 *</label>
-                <select v-model="currentDataSource.dbType">
-                  <option value="">请选择数据库类型</option>
-                  <option v-for="type in databaseTypes" :key="type" :value="type">{{ type }}</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>驱动类名 *</label>
-                <input type="text" v-model="currentDataSource.driverClassName" placeholder="例如: com.mysql.cj.jdbc.Driver">
-              </div>
-              <div class="form-group">
-                <label>连接URL *</label>
-                <input type="text" v-model="currentDataSource.url" placeholder="例如: jdbc:mysql://localhost:3306/database">
-              </div>
-              <div class="form-group">
-                <label>用户名 *</label>
-                <input type="text" v-model="currentDataSource.username" placeholder="数据库用户名">
-              </div>
-              <div class="form-group">
-                <label>密码</label>
-                <input type="password" v-model="currentDataSource.password" placeholder="数据库密码">
-              </div>
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" v-model="currentDataSource.enabled"> 启用状态
-                </label>
-              </div>
-            </form>
+            <el-form 
+              ref="dataSourceFormRef"
+              :model="currentDataSource" 
+              :rules="dataSourceRules"
+              label-position="top"
+              @submit.prevent
+            >
+              <el-form-item label="数据源名称 *" prop="name">
+                <el-input 
+                  v-model="currentDataSource.name" 
+                  placeholder="请输入数据源名称"
+                />
+              </el-form-item>
+              
+              <el-form-item label="数据库类型 *" prop="dbType">
+                <el-select 
+                  v-model="currentDataSource.dbType" 
+                  @change="onDbTypeChange" 
+                  placeholder="请选择数据库类型"
+                  style="width: 100%"
+                >
+                  <el-option 
+                    v-for="dbType in databaseTypes" 
+                    :key="dbType.type" 
+                    :label="dbType.type" 
+                    :value="dbType.type"
+                  />
+                </el-select>
+              </el-form-item>
+              
+              <el-form-item label="驱动类名 *" prop="driverClassName">
+                <el-input 
+                  v-model="currentDataSource.driverClassName" 
+                  placeholder="例如: com.mysql.cj.jdbc.Driver"
+                />
+              </el-form-item>
+              
+              <el-form-item label="连接URL *" prop="url">
+                <el-input 
+                  v-model="currentDataSource.url" 
+                  placeholder="例如: jdbc:mysql://localhost:3306/database"
+                />
+              </el-form-item>
+              
+              <el-form-item label="用户名 *" prop="username">
+                <el-input 
+                  v-model="currentDataSource.username" 
+                  placeholder="数据库用户名"
+                  autocomplete="off"
+                  :autocorrect="off"
+                  :spellcheck="false"
+                />
+              </el-form-item>
+              
+              <el-form-item label="密码" prop="password">
+                <el-input 
+                  v-model="currentDataSource.password" 
+                  type="password"
+                  placeholder="数据库密码"
+                  autocomplete="new-password"
+                  :autocorrect="off"
+                  :spellcheck="false"
+                />
+              </el-form-item>
+            </el-form>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-primary" @click="saveDataSource">保存</button>
-            <button class="btn btn-secondary" @click="closeModal">取消</button>
+            <el-button class="btn btn-primary" @click="saveDataSource">保存</el-button>
+            <el-button class="btn btn-secondary" @click="closeModal">取消</el-button>
           </div>
         </div>
       </div>
@@ -102,10 +129,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { dataSourceApi } from '../api'
+import { ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton } from 'element-plus'
 
 const dataSources = ref([])
 const loading = ref(false)
 const showModal = ref(false)
+const submitted = ref(false)
 const databaseTypes = ref([]) // 数据库类型列表
 const currentDataSource = ref({
   id: '',
@@ -118,6 +147,27 @@ const currentDataSource = ref({
   enabled: true
 })
 
+// 表单验证规则
+const dataSourceRules = {
+  name: [
+    { required: true, message: '请输入数据源名称', trigger: 'blur' }
+  ],
+  dbType: [
+    { required: true, message: '请选择数据库类型', trigger: 'change' }
+  ],
+  driverClassName: [
+    { required: true, message: '请输入驱动类名', trigger: 'blur' }
+  ],
+  url: [
+    { required: true, message: '请输入连接URL', trigger: 'blur' }
+  ],
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' }
+  ]
+}
+
+const dataSourceFormRef = ref(null)
+
 onMounted(() => {
   loadDataSources()
   loadDatabaseTypes()
@@ -127,6 +177,7 @@ const loadDatabaseTypes = async () => {
   try {
     const response = await dataSourceApi.getDatabaseTypes()
     // 适配新的Result响应结构
+    debugger
     databaseTypes.value = response.data.data || []
   } catch (error) {
     console.error('加载数据库类型失败:', error)
@@ -148,7 +199,6 @@ const loadDataSources = async () => {
 
 const openAddDialog = () => {
   currentDataSource.value = {
-    id: '',
     name: '',
     driverClassName: '',
     url: '',
@@ -157,31 +207,70 @@ const openAddDialog = () => {
     dbType: '',
     enabled: true
   }
+  submitted.value = false
   showModal.value = true
+  // 清除表单验证
+  if (dataSourceFormRef.value) {
+    dataSourceFormRef.value.clearValidate()
+  }
 }
 
 const editDataSource = (row) => {
   currentDataSource.value = { ...row }
   // 密码不应在编辑时显示，除非需要更新
   currentDataSource.value.password = '' // 清空密码字段以避免暴露
+  submitted.value = false
   showModal.value = true
+  // 清除表单验证
+  if (dataSourceFormRef.value) {
+    dataSourceFormRef.value.clearValidate()
+  }
 }
 
+const onDbTypeChange = () => {
+  if (currentDataSource.value.dbType) {
+    const selectedDbType = databaseTypes.value.find(type => type.type === currentDataSource.value.dbType)
+    if (selectedDbType) {
+      currentDataSource.value.driverClassName = selectedDbType.driverClass
+      // 使用默认模板，实际应用中可能需要用户输入host、port、database等参数
+      currentDataSource.value.url = selectedDbType.connectionTemplate
+    }
+  }
+}
 const closeModal = () => {
   showModal.value = false
 }
 
+const validateForm = () => {
+  if (!currentDataSource.value.name) {
+    return false;
+  }
+  if (!currentDataSource.value.dbType) {
+    return false;
+  }
+  if (!currentDataSource.value.driverClassName) {
+    return false;
+  }
+  if (!currentDataSource.value.url) {
+    return false;
+  }
+  if (!currentDataSource.value.username) {
+    return false;
+  }
+  return true;
+};
+
 const saveDataSource = async () => {
+  if (!dataSourceFormRef.value) return
+  
+  // 使用 Element Plus 的表单验证
+  const valid = await dataSourceFormRef.value.validate().catch(() => false)
+  if (!valid) {
+    return
+  }
+  
   try {
-    let response
-    if (currentDataSource.value.id) {
-      // 更新数据源 - 实际上后端可能没有直接的更新接口，我们使用add接口
-      response = await dataSourceApi.addDataSource(currentDataSource.value)
-    } else {
-      // 新增数据源
-      response = await dataSourceApi.addDataSource(currentDataSource.value)
-    }
-    
+    let response = await dataSourceApi.saveDataSource(currentDataSource.value)
     // 适配新的Result响应结构
     if (response.data.code === 200) {
       alert(currentDataSource.value.id ? '更新数据源成功' : '新增数据源成功')
@@ -193,6 +282,11 @@ const saveDataSource = async () => {
   } catch (error) {
     console.error('保存数据源失败:', error)
     alert('保存数据源失败: ' + (error.response?.data?.message || error.message))
+  } finally {
+    // 清除表单验证
+    if (dataSourceFormRef.value) {
+      dataSourceFormRef.value.clearValidate()
+    }
   }
 }
 
@@ -327,6 +421,12 @@ const toggleDataSourceStatus = (row) => {
   width: auto;
 }
 
+.form-group input.error-input,
+.form-group select.error-input {
+  border-color: #f56c6c; /* 红色边框表示错误 */
+  background-color: #fef0f0; /* 淡红色背景 */
+}
+
 .form-actions {
   text-align: right;
   margin-top: 20px;
@@ -404,5 +504,16 @@ const toggleDataSourceStatus = (row) => {
   justify-content: flex-end;
   gap: 10px;
   background-color: #fafafa;
+}
+
+/* Element Plus 表单特殊样式 */
+.modal-body :deep(.el-form-item__label) {
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-body :deep(.el-input__wrapper),
+.modal-body :deep(.el-select__wrapper) {
+  border-radius: 4px;
 }
 </style>
