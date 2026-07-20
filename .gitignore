@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+# --- Harness-generated files (do NOT commit -- regenerate with harness-creator) ---
+
+# Harness infrastructure (entire .harness directory)
+.harness/
+
+# Agent navigation map
+AGENTS.md

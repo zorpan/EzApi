@@ -7,11 +7,11 @@ import com.newx.ezapi.core.entity.DatabaseDriver;
 import com.newx.ezapi.core.service.DataSourceInfoService;
 import com.newx.ezapi.core.service.DataSourceManager;
 import com.newx.ezapi.core.service.DatabaseDriverService;
-import com.newx.ezapi.core.utils.CustomHikariConfig;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +41,25 @@ public class DataSourceManagerImpl implements DataSourceManager {
     private final Map<String, ClassLoader> driverClassLoaders = new ConcurrentHashMap<>();
     @Autowired
     private DatabaseDriverService databaseDriverService;
+
+    // 连接池参数，读取 application.properties 的 datasource.* 配置（默认值与原硬编码一致）
+    @Value("${datasource.max-pool-size:20}")
+    private int maxPoolSize;
+
+    @Value("${datasource.min-idle:5}")
+    private int minIdle;
+
+    @Value("${datasource.connection-timeout:30000}")
+    private long connectionTimeout;
+
+    @Value("${datasource.idle-timeout:600000}")
+    private long idleTimeout;
+
+    @Value("${datasource.max-lifetime:1800000}")
+    private long maxLifetime;
+
+    @Value("${datasource.leak-detection-threshold:60000}")
+    private long leakDetectionThreshold;
 
     @Override
     @Transactional
@@ -85,13 +104,13 @@ public class DataSourceManagerImpl implements DataSourceManager {
 
         }
 
-        // 设置连接池参数
-        hikariConfig.setMaximumPoolSize(20);
-        hikariConfig.setMinimumIdle(5);
-        hikariConfig.setConnectionTimeout(30000);
-        hikariConfig.setIdleTimeout(600000);
-        hikariConfig.setMaxLifetime(1800000);
-        hikariConfig.setLeakDetectionThreshold(60000);
+        // 设置连接池参数（从 application.properties 的 datasource.* 读取）
+        hikariConfig.setMaximumPoolSize(maxPoolSize);
+        hikariConfig.setMinimumIdle(minIdle);
+        hikariConfig.setConnectionTimeout(connectionTimeout);
+        hikariConfig.setIdleTimeout(idleTimeout);
+        hikariConfig.setMaxLifetime(maxLifetime);
+        hikariConfig.setLeakDetectionThreshold(leakDetectionThreshold);
 
         try {
             HikariDataSource dataSource = new HikariDataSource(hikariConfig);
