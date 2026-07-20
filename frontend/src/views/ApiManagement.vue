@@ -411,6 +411,8 @@ const addParameter = () => {
     defaultValue: '',
     description: ''
   })
+  // 新增参数后自动进入编辑模式，否则该行只渲染 <span>，无法输入
+  editingParamIndex.value = currentApi.value.parameters.length - 1
 }
 
 const editParameter = (index) => {

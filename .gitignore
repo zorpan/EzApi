@@ -31,6 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### 前端构建产物（由 Maven 打包流程生成，不入库） ###
+frontend/node_modules/
+frontend/dist/
+
 # --- Harness-generated files (do NOT commit -- regenerate with harness-creator) ---
 
 # Harness infrastructure (entire .harness directory)
