@@ -38,6 +38,18 @@ public class ApiInfo {
     @TableField("status")
     private Integer status; // 状态 0-下线 1-上线
 
+    @TableField("protocol_type")
+    private String protocolType; // 协议类型：SQL / WS / HTTP_PROXY 等
+
+    @TableField("ws_wsdl_url")
+    private String wsdlUrl; // WebService WSDL 地址
+
+    @TableField("ws_soap_body_template")
+    private String soapBodyTemplate; // SOAP 请求体模板
+
+    @TableField("ws_soap_action")
+    private String soapAction; // SOAPAction HTTP 头
+
     @TableField("created_time")
     private Long createdTime;
 
@@ -109,6 +121,38 @@ public class ApiInfo {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public String getProtocolType() {
+        return protocolType;
+    }
+
+    public void setProtocolType(String protocolType) {
+        this.protocolType = protocolType;
+    }
+
+    public String getWsdlUrl() {
+        return wsdlUrl;
+    }
+
+    public void setWsdlUrl(String wsdlUrl) {
+        this.wsdlUrl = wsdlUrl;
+    }
+
+    public String getSoapBodyTemplate() {
+        return soapBodyTemplate;
+    }
+
+    public void setSoapBodyTemplate(String soapBodyTemplate) {
+        this.soapBodyTemplate = soapBodyTemplate;
+    }
+
+    public String getSoapAction() {
+        return soapAction;
+    }
+
+    public void setSoapAction(String soapAction) {
+        this.soapAction = soapAction;
     }
 
     public Long getCreatedTime() {

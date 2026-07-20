@@ -44,6 +44,12 @@ public class ApiInfoServiceImpl extends ServiceImpl<ApiInfoMapper, ApiInfo> impl
 
     @Override
     public boolean saveApiInfo(ApiInfo apiInfo) {
+        // 检查路径+方法是否已被占用
+        ApiInfo exist = findByApiPathAndMethod(apiInfo.getApiPath(), apiInfo.getApiMethod());
+        if (exist != null) {
+            throw new RuntimeException("接口路径 " + apiInfo.getApiPath()
+                    + " 与方法 " + apiInfo.getApiMethod() + " 已被接口【" + exist.getApiName() + "】占用");
+        }
         // 设置创建时间
         if (apiInfo.getId() == null) {
             apiInfo.setCreatedTime(System.currentTimeMillis());
@@ -68,6 +74,12 @@ public class ApiInfoServiceImpl extends ServiceImpl<ApiInfoMapper, ApiInfo> impl
 
     @Override
     public boolean updateApiInfo(ApiInfo apiInfo) {
+        // 检查路径+方法是否已被其他 API 占用
+        ApiInfo exist = findByApiPathAndMethod(apiInfo.getApiPath(), apiInfo.getApiMethod());
+        if (exist != null && !exist.getId().equals(apiInfo.getId())) {
+            throw new RuntimeException("接口路径 " + apiInfo.getApiPath()
+                    + " 与方法 " + apiInfo.getApiMethod() + " 已被接口【" + exist.getApiName() + "】占用");
+        }
         apiInfo.setUpdatedTime(System.currentTimeMillis());
         boolean result = this.updateById(apiInfo);
         

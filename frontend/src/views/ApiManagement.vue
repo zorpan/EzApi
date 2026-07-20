@@ -22,6 +22,11 @@
         </template>
       </vxe-column>
       <vxe-column field="apiMethod" title="请求方法" width="120"></vxe-column>
+      <vxe-column field="protocolType" title="协议类型" width="120">
+        <template #default="{ row }">
+          <span>{{ protocolTypeLabel(row.protocolType) }}</span>
+        </template>
+      </vxe-column>
       <vxe-column field="status" title="状态" width="100">
         <template #default="{ row }">
           <span :class="row.status === 1 ? 'status-active' : 'status-inactive'">
@@ -80,30 +85,78 @@
               
               <div class="form-row">
                 <div class="form-group" style="flex: 1;">
-                  <label>数据源ID *</label>
-                  <select v-model="currentApi.dataSourceId">
-                    <option value="">请选择数据源</option>
-                    <option v-for="ds in dataSources" :key="ds.id" :value="ds.id">{{ ds.name }}</option>
+                  <label>协议类型 *</label>
+                  <select v-model="currentApi.protocolType" @change="onProtocolTypeChange">
+                    <option value="SQL">数据库查询 (SQL)</option>
+                    <option value="WS">WebService (SOAP)</option>
                   </select>
                 </div>
                 <div class="form-group" style="flex: 1; margin-left: 15px;">
                   <label>状态</label>
                   <select v-model="currentApi.status">
-                    <option value="0">启用</option>
-                    <option value="1">禁用</option>
+                    <option :value="0">禁用（下线）</option>
+                    <option :value="1">启用（上线）</option>
                   </select>
                 </div>
               </div>
-              
-              <div class="form-group">
-                <label>SQL内容 *</label>
-                <textarea 
-                  v-model="currentApi.sqlContent" 
-                  rows="6" 
-                  placeholder="请输入SQL查询语句"
-                  class="form-textarea"
-                ></textarea>
-              </div>
+
+              <!-- SQL 协议配置 -->
+              <template v-if="currentApi.protocolType === 'SQL' || !currentApi.protocolType">
+                <div class="form-row">
+                  <div class="form-group" style="flex: 1;">
+                    <label>数据源ID *</label>
+                    <select v-model="currentApi.dataSourceId">
+                      <option value="">请选择数据源</option>
+                      <option v-for="ds in dataSources" :key="ds.id" :value="ds.id">{{ ds.name }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>SQL内容 *</label>
+                  <textarea 
+                    v-model="currentApi.sqlContent" 
+                    rows="6" 
+                    placeholder="请输入SQL查询语句"
+                    class="form-textarea"
+                  ></textarea>
+                </div>
+              </template>
+
+              <!-- WebService 协议配置 -->
+              <template v-if="currentApi.protocolType === 'WS'">
+                <div class="form-group">
+                  <label>WSDL 地址 *</label>
+                  <input 
+                    type="text" 
+                    v-model="currentApi.wsdlUrl" 
+                    placeholder="http://example.com/service?wsdl"
+                  >
+                </div>
+                <div class="form-group">
+                  <label>SOAPAction（可选）</label>
+                  <input 
+                    type="text" 
+                    v-model="currentApi.soapAction" 
+                    placeholder="http://tempuri.org/GetUserInfo"
+                  >
+                </div>
+                <div class="form-group">
+                  <label>SOAP 请求模板 *</label>
+                  <textarea 
+                    v-model="currentApi.soapBodyTemplate" 
+                    rows="8" 
+                    placeholder='使用 #{paramName} 引用参数，例如：
+&lt;soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"&gt;
+  &lt;soap:Body&gt;
+    &lt;GetUserInfo xmlns="http://example.com/"&gt;
+      &lt;userId&gt;#{userId}&lt;/userId&gt;
+    &lt;/GetUserInfo&gt;
+  &lt;/soap:Body&gt;
+&lt;/soap:Envelope&gt;'
+                    class="form-textarea"
+                  ></textarea>
+                </div>
+              </template>
               
               <div class="form-group">
                 <label>描述</label>
@@ -210,18 +263,38 @@
               <span>{{ selectedApi.apiMethod }}</span>
             </div>
             <div class="detail-item">
-              <label>数据源ID:</label>
-              <span>{{ selectedApi.dataSourceId }}</span>
+              <label>协议类型:</label>
+              <span>{{ protocolTypeLabel(selectedApi.protocolType) }}</span>
             </div>
+            <template v-if="selectedApi.protocolType === 'SQL' || !selectedApi.protocolType">
+              <div class="detail-item">
+                <label>数据源ID:</label>
+                <span>{{ selectedApi.dataSourceId }}</span>
+              </div>
+              <div class="detail-item">
+                <label>SQL内容:</label>
+                <pre>{{ selectedApi.sqlContent }}</pre>
+              </div>
+            </template>
+            <template v-if="selectedApi.protocolType === 'WS'">
+              <div class="detail-item">
+                <label>WSDL 地址:</label>
+                <span>{{ selectedApi.wsdlUrl }}</span>
+              </div>
+              <div class="detail-item">
+                <label>SOAPAction:</label>
+                <span>{{ selectedApi.soapAction || '（无）' }}</span>
+              </div>
+              <div class="detail-item">
+                <label>SOAP 模板:</label>
+                <pre>{{ selectedApi.soapBodyTemplate }}</pre>
+              </div>
+            </template>
             <div class="detail-item">
               <label>状态:</label>
               <span :class="selectedApi.status === 1 ? 'status-active' : 'status-inactive'">
-                {{ selectedApi.status === 0 ? '启用' : '禁用' }}
+                {{ selectedApi.status === 1 ? '启用' : '禁用' }}
               </span>
-            </div>
-            <div class="detail-item">
-              <label>SQL内容:</label>
-              <pre>{{ selectedApi.sqlContent }}</pre>
             </div>
             <div class="detail-item">
               <label>描述:</label>
@@ -260,8 +333,12 @@ const currentApi = ref({
   apiName: '',
   apiPath: '',
   apiMethod: 'GET',
+  protocolType: 'SQL',
   dataSourceId: '',
   sqlContent: '',
+  wsdlUrl: '',
+  soapBodyTemplate: '',
+  soapAction: '',
   description: '',
   status: 0,
   parameters: []
@@ -311,8 +388,12 @@ const openAddEditDialog = (api = null) => {
       apiName: '',
       apiPath: '',
       apiMethod: 'GET',
+      protocolType: 'SQL',
       dataSourceId: '',
       sqlContent: '',
+      wsdlUrl: '',
+      soapBodyTemplate: '',
+      soapAction: '',
       description: '',
       status: 0,
       parameters: []
@@ -430,6 +511,26 @@ const cancelEditParameter = () => {
 const removeParameter = (index) => {
   if (currentApi.value.parameters && currentApi.value.parameters.length > index) {
     currentApi.value.parameters.splice(index, 1)
+  }
+}
+
+// 协议类型标签显示
+const protocolTypeLabel = (type) => {
+  const map = { SQL: '数据库查询', WS: 'WebService' }
+  return map[type] || type || '数据库查询'
+}
+
+// 切换协议类型时清理无关字段
+const onProtocolTypeChange = () => {
+  if (currentApi.value.protocolType === 'WS') {
+    // 切换到 WebService，清理 SQL 相关字段
+    currentApi.value.dataSourceId = ''
+    currentApi.value.sqlContent = ''
+  } else {
+    // 切换到 SQL，清理 WebService 相关字段
+    currentApi.value.wsdlUrl = ''
+    currentApi.value.soapBodyTemplate = ''
+    currentApi.value.soapAction = ''
   }
 }
 </script>

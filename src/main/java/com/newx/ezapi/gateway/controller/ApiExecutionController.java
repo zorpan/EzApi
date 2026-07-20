@@ -1,17 +1,16 @@
 package com.newx.ezapi.gateway.controller;
 
 import com.newx.ezapi.auth.service.AuthorizationTokenService;
+import com.newx.ezapi.common.result.Result;
 import com.newx.ezapi.core.entity.ApiInfo;
 import com.newx.ezapi.core.entity.ApiParameter;
+import com.newx.ezapi.core.service.ApiExecuteOrchestrator;
 import com.newx.ezapi.core.service.ApiInfoService;
 import com.newx.ezapi.core.service.ApiParameterService;
-import com.newx.ezapi.core.service.DatabaseQueryService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,7 +26,7 @@ public class ApiExecutionController {
     private ApiParameterService apiParameterService;
 
     @Autowired
-    private DatabaseQueryService databaseQueryService;
+    private ApiExecuteOrchestrator apiExecuteOrchestrator;
     
     @Autowired
     private AuthorizationTokenService authorizationTokenService;
@@ -36,7 +35,7 @@ public class ApiExecutionController {
      * 动态GET API
      */
     @GetMapping("/{path}")
-    public ResponseEntity<Object> dynamicGetApi(
+    public Result<Object> dynamicGetApi(
             HttpServletRequest request,
             @PathVariable String path,
             @RequestParam Map<String, String> queryParams) {
@@ -47,7 +46,7 @@ public class ApiExecutionController {
      * 动态POST API
      */
     @PostMapping("/{path}")
-    public ResponseEntity<Object> dynamicPostApi(
+    public Result<Object> dynamicPostApi(
             HttpServletRequest request,
             @PathVariable String path,
             @RequestBody(required = false) Map<String, Object> requestBody) {
@@ -64,7 +63,7 @@ public class ApiExecutionController {
      * 动态PUT API
      */
     @PutMapping("/{path}")
-    public ResponseEntity<Object> dynamicPutApi(
+    public Result<Object> dynamicPutApi(
             HttpServletRequest request,
             @PathVariable String path,
             @RequestBody Map<String, Object> requestBody) {
@@ -81,7 +80,7 @@ public class ApiExecutionController {
      * 动态DELETE API
      */
     @DeleteMapping("/{path}")
-    public ResponseEntity<Object> dynamicDeleteApi(
+    public Result<Object> dynamicDeleteApi(
             HttpServletRequest request,
             @PathVariable String path,
             @RequestParam Map<String, String> queryParams) {
@@ -91,22 +90,22 @@ public class ApiExecutionController {
     /**
      * 执行动态API
      */
-    private ResponseEntity<Object> executeDynamicApi(HttpServletRequest request, String method, String path, Map<String, String> params) {
+    private Result<Object> executeDynamicApi(HttpServletRequest request, String method, String path, Map<String, String> params) {
         try {
             // 查找匹配的API
             ApiInfo apiInfo = apiInfoService.findByApiPathAndMethod(path, method);
             if (apiInfo == null) {
-                return ResponseEntity.notFound().build();
+                return Result.error(404, "API不存在: " + path);
             }
 
             // 检查API是否上线
             if (apiInfo.getStatus() != 1) {
-                return ResponseEntity.status(404).body("API未上线");
+                return Result.error(404, "API未上线");
             }
 
             // 授权检查
             if (!checkAuthorization(request, apiInfo.getId())) {
-                return ResponseEntity.status(401).body("Unauthorized: Access denied");
+                return Result.error(401, "Unauthorized: Access denied");
             }
 
             // 获取API参数定义
@@ -115,7 +114,7 @@ public class ApiExecutionController {
             // 验证参数
             for (ApiParameter apiParam : apiParameters) {
                 if (apiParam.getRequired() != null && apiParam.getRequired() && !params.containsKey(apiParam.getParamName())) {
-                    return ResponseEntity.badRequest().body("缺少必需参数: " + apiParam.getParamName());
+                    return Result.error(400, "缺少必需参数: " + apiParam.getParamName());
                 }
             }
 
@@ -135,13 +134,13 @@ public class ApiExecutionController {
                 if (apiParam != null) {
                     // 验证参数类型
                     if (!validateParameter(apiParam, paramValue)) {
-                        return ResponseEntity.badRequest().body("参数类型错误: " + paramName);
+                        return Result.error(400, "参数类型错误: " + paramName);
                     }
 
                     // 验证参数规则
                     if (apiParam.getValidationRule() != null && !apiParam.getValidationRule().isEmpty()) {
                         if (!validateParameterRule(apiParam.getValidationRule(), paramValue)) {
-                            return ResponseEntity.badRequest().body("参数验证失败: " + paramName);
+                            return Result.error(400, "参数验证失败: " + paramName);
                         }
                     }
                 }
@@ -150,25 +149,23 @@ public class ApiExecutionController {
             // 将字符串参数转换为适当的类型
             Map<String, Object> convertedParams = convertParameters(params, apiParameters);
 
-            // 直接使用MyBatis风格的查询，传递参数
-            List<Map<String, Object>> result = databaseQueryService.executeMyBatisQuery(
-                apiInfo.getDataSourceId(), 
-                apiInfo.getSqlContent(),
-                convertedParams
-            );
-            
+            // 由编排器根据 protocolType 路由到对应的协议执行器
+            Object result = apiExecuteOrchestrator.execute(apiInfo, convertedParams);
+
             // 如果使用了令牌，增加访问计数
             String tokenValue = extractTokenFromRequest(request);
             if (tokenValue != null) {
                 authorizationTokenService.incrementAccessCount(tokenValue, apiInfo.getId());
             }
 
-            return ResponseEntity.ok(result);
+            return Result.success(result);
         } catch (Exception e) {
-            if (e instanceof SQLException) {
-                return ResponseEntity.status(500).body("数据库查询错误: " + e.getMessage());
+            String message = e.getMessage();
+            // 根据异常类型给出友好的错误提示
+            if (message != null && message.contains("WebService")) {
+                return Result.error(502, "WebService调用错误: " + message);
             }
-            return ResponseEntity.status(500).body("API执行错误: " + e.getMessage());
+            return Result.error(500, "API执行错误: " + message);
         }
     }
 

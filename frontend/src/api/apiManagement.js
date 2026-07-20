@@ -49,3 +49,17 @@ export const updateApiStatus = (id, statusData) => {
     data: statusData
   })
 }
+
+// 获取协议类型列表
+export const getProtocolTypes = () => {
+  // 目前后端没有专门的枚举查询接口，直接返回前端预定义的类型
+  return Promise.resolve({
+    data: {
+      code: 200,
+      data: [
+        { code: 'SQL', description: '数据库查询' },
+        { code: 'WS', description: 'WebService' }
+      ]
+    }
+  })
+}

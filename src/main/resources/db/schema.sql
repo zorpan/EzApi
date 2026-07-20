@@ -20,14 +20,19 @@ CREATE TABLE IF NOT EXISTS api_info (
     api_name VARCHAR(255) NOT NULL COMMENT 'API名称',
     api_path VARCHAR(500) NOT NULL COMMENT 'API路径',
     api_method VARCHAR(10) NOT NULL COMMENT '请求方法(GET, POST, PUT, DELETE等)',
-    data_source_id VARCHAR(50) NOT NULL COMMENT '数据源ID',
-    sql_content TEXT NOT NULL COMMENT 'SQL内容',
+    data_source_id VARCHAR(50) COMMENT '数据源ID（SQL 协议使用）',
+    sql_content TEXT COMMENT 'SQL内容（SQL 协议使用）',
+    protocol_type VARCHAR(20) DEFAULT 'SQL' COMMENT '协议类型：SQL-数据库查询, WS-WebService',
+    ws_wsdl_url VARCHAR(1000) COMMENT 'WebService WSDL 地址',
+    ws_soap_body_template TEXT COMMENT 'SOAP 请求体模板，支持 #{param} 占位符',
+    ws_soap_action VARCHAR(500) COMMENT 'SOAPAction HTTP 头',
     description TEXT COMMENT '描述',
     status TINYINT(1) DEFAULT 0 COMMENT '状态(0-下线, 1-上线)',
     created_time BIGINT COMMENT '创建时间戳',
     updated_time BIGINT COMMENT '更新时间戳',
     created_by VARCHAR(100) COMMENT '创建人',
-    updated_by VARCHAR(100) COMMENT '更新人'
+    updated_by VARCHAR(100) COMMENT '更新人',
+    UNIQUE KEY uk_api_path_method (api_path, api_method)
 ) COMMENT='API信息表';
 
 -- 创建API参数表
