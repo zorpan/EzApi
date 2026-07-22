@@ -20,14 +20,19 @@ CREATE TABLE IF NOT EXISTS api_info (
     api_name VARCHAR(255) NOT NULL COMMENT 'API名称',
     api_path VARCHAR(500) NOT NULL COMMENT 'API路径',
     api_method VARCHAR(10) NOT NULL COMMENT '请求方法(GET, POST, PUT, DELETE等)',
-    data_source_id VARCHAR(50) NOT NULL COMMENT '数据源ID',
-    sql_content TEXT NOT NULL COMMENT 'SQL内容',
+    data_source_id VARCHAR(50) COMMENT '数据源ID（SQL 协议使用）',
+    sql_content TEXT COMMENT 'SQL内容（SQL 协议使用）',
+    protocol_type VARCHAR(20) DEFAULT 'SQL' COMMENT '协议类型：SQL-数据库查询, WS-WebService',
+    ws_wsdl_url VARCHAR(1000) COMMENT 'WebService WSDL 地址',
+    ws_soap_body_template TEXT COMMENT 'SOAP 请求体模板，支持 #{param} 占位符',
+    ws_soap_action VARCHAR(500) COMMENT 'SOAPAction HTTP 头',
     description TEXT COMMENT '描述',
     status TINYINT(1) DEFAULT 0 COMMENT '状态(0-下线, 1-上线)',
     created_time BIGINT COMMENT '创建时间戳',
     updated_time BIGINT COMMENT '更新时间戳',
     created_by VARCHAR(100) COMMENT '创建人',
-    updated_by VARCHAR(100) COMMENT '更新人'
+    updated_by VARCHAR(100) COMMENT '更新人',
+    UNIQUE KEY uk_api_path_method (api_path, api_method)
 ) COMMENT='API信息表';
 
 -- 创建API参数表
@@ -99,3 +104,31 @@ CREATE TABLE IF NOT EXISTS database_driver (
     created_time BIGINT COMMENT '创建时间戳',
     updated_time BIGINT COMMENT '更新时间戳'
 ) COMMENT='数据库驱动表';
+
+-- 创建API访问日志表
+CREATE TABLE IF NOT EXISTS api_access_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    request_id VARCHAR(50) NOT NULL COMMENT '请求ID（UUID，用于追踪）',
+    api_id BIGINT COMMENT 'API ID（关联 api_info 表）',
+    api_path VARCHAR(500) COMMENT 'API路径',
+    api_method VARCHAR(10) COMMENT '请求方法',
+    http_method VARCHAR(10) NOT NULL COMMENT 'HTTP请求方法',
+    request_url VARCHAR(1000) NOT NULL COMMENT '请求URL',
+    request_headers TEXT COMMENT '请求头（JSON格式）',
+    request_params TEXT COMMENT '请求参数（JSON格式）',
+    request_body LONGTEXT COMMENT '请求体',
+    response_status INT COMMENT '响应状态码',
+    response_body LONGTEXT COMMENT '响应体',
+    client_ip VARCHAR(50) COMMENT '客户端IP',
+    user_agent VARCHAR(500) COMMENT '用户代理',
+    token_value VARCHAR(500) COMMENT '使用的令牌',
+    user_id BIGINT COMMENT '用户ID',
+    username VARCHAR(100) COMMENT '用户名',
+    execution_time BIGINT COMMENT '执行时间（毫秒）',
+    error_message TEXT COMMENT '错误信息',
+    create_time DATETIME NOT NULL COMMENT '创建时间',
+    INDEX idx_create_time (create_time),
+    INDEX idx_api_id (api_id),
+    INDEX idx_client_ip (client_ip),
+    INDEX idx_user_id (user_id)
+) COMMENT='API访问日志表';
