@@ -1,6 +1,7 @@
 package com.newx.ezapi.core.config;
 
 import com.newx.ezapi.auth.interceptor.InternalInterceptor;
+import com.newx.ezapi.common.interceptor.ApiAccessLogInterceptor;
 import com.newx.ezapi.gateway.interceptor.GatewayInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -18,9 +19,17 @@ public class WebInterceptorConfig implements WebMvcConfigurer {
 
     @Autowired
     private GatewayInterceptor gatewayInterceptor;
+    
+    @Autowired
+    private ApiAccessLogInterceptor apiAccessLogInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        
+        // 注册API访问日志拦截器（最先执行）
+        registry.addInterceptor(apiAccessLogInterceptor)
+                .addPathPatterns("/api/**")
+                .excludePathPatterns("/api/login");
 
         // 注册接口网关授权拦截器，应用于所有需要保护的路径
         registry.addInterceptor(gatewayInterceptor)

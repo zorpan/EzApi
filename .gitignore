@@ -43,3 +43,9 @@ frontend/dist/
 
 # Agent navigation map
 AGENTS.md
+
+.agents
+
+.github
+
+.zcode

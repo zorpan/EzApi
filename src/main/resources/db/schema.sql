@@ -104,3 +104,31 @@ CREATE TABLE IF NOT EXISTS database_driver (
     created_time BIGINT COMMENT '创建时间戳',
     updated_time BIGINT COMMENT '更新时间戳'
 ) COMMENT='数据库驱动表';
+
+-- 创建API访问日志表
+CREATE TABLE IF NOT EXISTS api_access_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    request_id VARCHAR(50) NOT NULL COMMENT '请求ID（UUID，用于追踪）',
+    api_id BIGINT COMMENT 'API ID（关联 api_info 表）',
+    api_path VARCHAR(500) COMMENT 'API路径',
+    api_method VARCHAR(10) COMMENT '请求方法',
+    http_method VARCHAR(10) NOT NULL COMMENT 'HTTP请求方法',
+    request_url VARCHAR(1000) NOT NULL COMMENT '请求URL',
+    request_headers TEXT COMMENT '请求头（JSON格式）',
+    request_params TEXT COMMENT '请求参数（JSON格式）',
+    request_body LONGTEXT COMMENT '请求体',
+    response_status INT COMMENT '响应状态码',
+    response_body LONGTEXT COMMENT '响应体',
+    client_ip VARCHAR(50) COMMENT '客户端IP',
+    user_agent VARCHAR(500) COMMENT '用户代理',
+    token_value VARCHAR(500) COMMENT '使用的令牌',
+    user_id BIGINT COMMENT '用户ID',
+    username VARCHAR(100) COMMENT '用户名',
+    execution_time BIGINT COMMENT '执行时间（毫秒）',
+    error_message TEXT COMMENT '错误信息',
+    create_time DATETIME NOT NULL COMMENT '创建时间',
+    INDEX idx_create_time (create_time),
+    INDEX idx_api_id (api_id),
+    INDEX idx_client_ip (client_ip),
+    INDEX idx_user_id (user_id)
+) COMMENT='API访问日志表';
