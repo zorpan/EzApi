@@ -136,6 +136,17 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Flyway 数据库版本管理（迁移脚本位于 classpath:db/migration/，启动期自动执行） -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <!-- Flyway 8.x 起 MySQL 支持分离为独立模块，必须显式引入否则启动报错 -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>

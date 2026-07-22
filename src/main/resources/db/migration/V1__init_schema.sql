@@ -1,5 +1,10 @@
+-- V1__init_schema.sql
+-- 初始 schema：8 张表（data_source_info / api_info / api_parameter / authorization_token /
+-- authorization_token_api / sys_user / database_driver / api_access_log）
+-- 由 schema.sql 迁移而来，首次迁移执行；后续新增字段/表请新建 V2__xxx.sql
+
 -- 创建数据源信息表
-CREATE TABLE IF NOT EXISTS data_source_info (
+CREATE TABLE data_source_info (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL COMMENT '数据源名称',
     driver_class_name VARCHAR(255) NOT NULL COMMENT '驱动类名',
@@ -15,7 +20,7 @@ CREATE TABLE IF NOT EXISTS data_source_info (
 ) COMMENT='数据源信息表';
 
 -- 创建API信息表
-CREATE TABLE IF NOT EXISTS api_info (
+CREATE TABLE api_info (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     api_name VARCHAR(255) NOT NULL COMMENT 'API名称',
     api_path VARCHAR(500) NOT NULL COMMENT 'API路径',
@@ -36,7 +41,7 @@ CREATE TABLE IF NOT EXISTS api_info (
 ) COMMENT='API信息表';
 
 -- 创建API参数表
-CREATE TABLE IF NOT EXISTS api_parameter (
+CREATE TABLE api_parameter (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     api_id BIGINT NOT NULL COMMENT 'API ID',
     param_name VARCHAR(100) NOT NULL COMMENT '参数名称',
@@ -51,7 +56,7 @@ CREATE TABLE IF NOT EXISTS api_parameter (
 ) COMMENT='API参数表';
 
 -- 创建授权令牌表
-CREATE TABLE IF NOT EXISTS authorization_token (
+CREATE TABLE authorization_token (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     token_name VARCHAR(255) NOT NULL COMMENT '令牌名称',
     token_value VARCHAR(500) NOT NULL COMMENT '令牌值',
@@ -66,7 +71,7 @@ CREATE TABLE IF NOT EXISTS authorization_token (
 ) COMMENT='授权令牌表';
 
 -- 创建API密钥与API关联表
-CREATE TABLE IF NOT EXISTS authorization_token_api (
+CREATE TABLE authorization_token_api (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     token_id BIGINT NOT NULL COMMENT 'API密钥ID',
     api_id BIGINT NOT NULL COMMENT 'API ID',
@@ -77,7 +82,7 @@ CREATE TABLE IF NOT EXISTS authorization_token_api (
 ) COMMENT='API密钥与API关联表';
 
 -- 创建用户表
-CREATE TABLE IF NOT EXISTS sys_user (
+CREATE TABLE sys_user (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE COMMENT '用户名',
     password VARCHAR(255) NOT NULL COMMENT '密码',
@@ -90,7 +95,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
 ) COMMENT='用户表';
 
 -- 创建数据库驱动表
-CREATE TABLE IF NOT EXISTS database_driver (
+CREATE TABLE database_driver (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     driver_name VARCHAR(255) NOT NULL COMMENT '驱动名称',
     driver_version VARCHAR(100) COMMENT '驱动版本',
@@ -106,7 +111,7 @@ CREATE TABLE IF NOT EXISTS database_driver (
 ) COMMENT='数据库驱动表';
 
 -- 创建API访问日志表
-CREATE TABLE IF NOT EXISTS api_access_log (
+CREATE TABLE api_access_log (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     request_id VARCHAR(50) NOT NULL COMMENT '请求ID（UUID，用于追踪）',
     api_id BIGINT COMMENT 'API ID（关联 api_info 表）',
@@ -132,3 +137,9 @@ CREATE TABLE IF NOT EXISTS api_access_log (
     INDEX idx_client_ip (client_ip),
     INDEX idx_user_id (user_id)
 ) COMMENT='API访问日志表';
+
+-- 默认管理员账号（密码 admin123 的 MD5，与 SysUserServiceImpl 的加密方式一致）
+-- ⚠️ 弱默认密码，生产部署后应立即通过 /api/sysuser/user/change-password 修改
+INSERT INTO sys_user (username, password, role, status, email, description, create_time, update_time)
+VALUES ('admin', '0192023a7bbd73250516f069df18b500', 'ADMIN', 'ACTIVE', 'admin@ezapi.local', '默认管理员（初始密码 admin123）', NOW(), NOW())
+ON DUPLICATE KEY UPDATE username = username;
