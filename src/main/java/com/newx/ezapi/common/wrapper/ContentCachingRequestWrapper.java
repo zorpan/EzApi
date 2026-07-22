@@ -1,5 +1,7 @@
 package com.newx.ezapi.common.wrapper;
 
+import org.springframework.stereotype.Component;
+
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
@@ -10,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * 可缓存请求体的请求包装器
  */
+@Component
 public class ContentCachingRequestWrapper extends HttpServletRequestWrapper {
     
     private byte[] content;

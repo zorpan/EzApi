@@ -29,13 +29,7 @@ public class DatabaseQueryServiceImpl implements DatabaseQueryService {
 
     @Override
     public List<Map<String, Object>> executeQuery(String dataSourceId, String sql) throws SQLException {
-        try (Connection connection = dataSourceManager.getConnection(dataSourceId)) {
-            try (Statement statement = connection.createStatement()) {
-                try (ResultSet resultSet = statement.executeQuery(sql)) {
-                    return mapResultSet(resultSet);
-                }
-            }
-        }
+        return myBatisQueryService.executeMyBatisQuery(dataSourceId, sql, null);
     }
 
     @Override
